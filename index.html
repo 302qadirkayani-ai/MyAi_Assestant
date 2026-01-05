@@ -178,8 +178,8 @@
                         <span id="S_SEC_LEVEL" class="diag-good font-mono">L5/CRYPTOSHIELD</span>
                     </li>
                     <li class="flex justify-between items-center py-1">
-                        <span class="opacity-80">Bridge Connection:</span>
-                        <span id="S_BRIDGE_STAT" class="diag-critical font-mono">DISCONNECTED</span>
+                        <span class="opacity-80">Python Bridge:</span>
+                        <span id="S_BRIDGE_STAT" class="diag-warn font-mono">OFFLINE</span>
                     </li>
                     <li class="flex justify-between items-center py-1">
                         <span class="opacity-80">API Status:</span>
@@ -253,29 +253,33 @@
 
         const _H_CONNECT_BRIDGE = function() {
             try {
-                _S_BRIDGE_WS = new WebSocket('ws://localhost:3000');
+                // Connect directly to Python (bridge optional for lightweight mode)
+                _S_BRIDGE_WS = new WebSocket('ws://localhost:8765');
                 
                 _S_BRIDGE_WS.onopen = () => {
                     _S_BRIDGE_CONNECTED = true;
                     _H_D_BRIDGE_STAT.textContent = "CONNECTED";
                     _H_D_BRIDGE_STAT.className = 'diag-good font-mono';
-                    _H_D_LOG.innerHTML += `<p class="neon-text diag-good mt-2">[[ LOCAL_BRIDGE: Connected to Python executor ]]</p>`;
+                    _H_D_LOG.innerHTML += `<p class="neon-text diag-good mt-2">[[ BRIDGE: Connected to Python executor ]]</p>`;
                     _H_D_LOG.scrollTop = _H_D_LOG.scrollHeight;
                 };
                 
                 _S_BRIDGE_WS.onmessage = (event) => {
                     try {
                         const response = JSON.parse(event.data);
-                        const agentTextDir = (_S_CURRENT_LANG === 'ur' || _S_CURRENT_LANG === 'ar') ? 'rtl' : 'ltr';
+                        const dir = (_S_CURRENT_LANG === 'ur' || _S_CURRENT_LANG === 'ar') ? 'rtl' : 'ltr';
                         
                         if (response.success) {
-                            _H_D_LOG.innerHTML += `<p dir="${agentTextDir}" class="mb-2 text-green-400">✅ ${response.message || JSON.stringify(response.data)}</p>`;
+                            const msg = response.message || JSON.stringify(response.data);
+                            _H_D_LOG.innerHTML += `<p dir="${dir}" class="mb-2 text-green-400">✅ ${msg}</p>`;
+                            _H_TTS_SPEAK(response.message || "Command executed successfully");
                         } else {
-                            _H_D_LOG.innerHTML += `<p dir="${agentTextDir}" class="mb-2 text-red-400">❌ ${response.message}</p>`;
+                            _H_D_LOG.innerHTML += `<p dir="${dir}" class="mb-2 text-red-400">❌ ${response.message}</p>`;
+                            _H_TTS_SPEAK("Command failed");
                         }
                         _H_D_LOG.scrollTop = _H_D_LOG.scrollHeight;
                     } catch (e) {
-                        console.error('Bridge message parse error:', e);
+                        console.error('Parse error:', e);
                     }
                 };
                 
@@ -285,22 +289,20 @@
                 
                 _S_BRIDGE_WS.onclose = () => {
                     _S_BRIDGE_CONNECTED = false;
-                    _H_D_BRIDGE_STAT.textContent = "DISCONNECTED";
-                    _H_D_BRIDGE_STAT.className = 'diag-critical font-mono';
-                    _H_D_LOG.innerHTML += `<p class="text-yellow-500 mt-2">[[ LOCAL_BRIDGE: Disconnected. Retrying in 5s... ]]</p>`;
-                    _H_D_LOG.scrollTop = _H_D_LOG.scrollHeight;
+                    _H_D_BRIDGE_STAT.textContent = "OFFLINE";
+                    _H_D_BRIDGE_STAT.className = 'diag-warn font-mono';
                     setTimeout(_H_CONNECT_BRIDGE, 5000);
                 };
                 
             } catch (error) {
-                console.error('Bridge connection failed:', error);
+                console.error('Connection failed:', error);
                 setTimeout(_H_CONNECT_BRIDGE, 5000);
             }
         };
 
         const _H_SEND_TO_BRIDGE = function(action, params) {
             if (!_S_BRIDGE_CONNECTED || !_S_BRIDGE_WS) {
-                _H_D_LOG.innerHTML += `<p class="text-red-400 mt-2">❌ Bridge not connected. Start the Node.js server first.</p>`;
+                _H_D_LOG.innerHTML += `<p class="text-yellow-400 mt-2">⚠️ Bridge offline. Start Python executor first.</p>`;
                 _H_D_LOG.scrollTop = _H_D_LOG.scrollHeight;
                 return;
             }
@@ -549,7 +551,7 @@
                 return;
             } else if (promptLower.startsWith('list ')) {
                 const path = userPrompt.substring(5).trim();
-                _H_SEND_TO_BRIDGE('list_directory', { path: path });
+                _H_SEND_TO_BRIDGE('list_dir', { path: path });
                 analyzingMsg.remove();
                 return;
             } else if (promptLower === 'emergency lock') {
@@ -691,8 +693,8 @@
             
             setInterval(_H_UPDATE_HUD, 2000);
             
-            _H_D_LOG.innerHTML += `<p class="text-green-400 mt-2">[[ All systems initialized. Ready for commands. ]]</p>`;
-            _H_D_LOG.innerHTML += `<p class="text-blue-300 mt-1">[[ Try: "open notepad", "open chrome", "system info" ]]</p>`;
+            _H_D_LOG.innerHTML += `<p class="text-green-400 mt-2">[[ Systems initialized. Lightweight mode active. ]]</p>`;
+            _H_D_LOG.innerHTML += `<p class="text-blue-300 mt-1">[[ Commands: "open notepad", "system info", "list C:\\Users" ]]</p>`;
             _H_D_LOG.scrollTop = _H_D_LOG.scrollHeight;
         };
 
