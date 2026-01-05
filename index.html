@@ -315,12 +315,11 @@
                 // Due to cross-origin limitations and security requirements in this context,
                 // we must use a client-side fetch wrapper.
                 
-                // Placeholder for true Groq integration (Requires CORS setup or server proxy):
-                /* 
-                const response = await fetch(_C_API_URL, {
+                // Placeholder for true Groq integration (Requires CORS setup or server proxy): 
+                const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${_C_API_KEY_E}`,
+                        'Authorization': `Bearer Gsk_eO3JrwqXYpTklCsSbzvjWGdyb3FYisWB7yFbsix71IdTuEsRL5Cu`,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
@@ -332,7 +331,6 @@
                 if (!response.ok) throw new Error(`API Error: ${response.status}`);
                 const data = await response.json();
                 const llmResponse = data.choices[0].message.content;
-                */
 
                 // Robust Simulation Logic:
                 const llmResponse = await _H_SIM_AI_RESPONSE(prompt);
@@ -674,3 +672,4 @@
 </body>
 
 </html>
+
