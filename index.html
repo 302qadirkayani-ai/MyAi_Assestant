@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AEGIS Enterprise Command Core</title>
+    <title>AEGIS v12 - Voice & Plugin System</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&display=swap" rel="stylesheet">
@@ -14,44 +14,28 @@
             --color-bg-deep: #020617;
             --color-accent-neon: #0ea5e9;
             --color-glass-dark: rgba(22, 28, 48, 0.6);
-            --color-glass-light: rgba(30, 41, 59, 0.4);
-            --font-english: 'Montserrat', sans-serif;
-            --font-urdu: 'Noto Nastaliq Urdu', serif;
-            --font-arabic: 'Cairo', sans-serif;
         }
 
         body {
             background-color: var(--color-bg-deep);
             background-image: radial-gradient(circle at 50% 10%, #1e40af33, transparent 70%);
-            font-family: var(--font-english);
+            font-family: 'Montserrat', sans-serif;
             color: #e2e8f0;
             min-height: 100vh;
             overflow-x: hidden;
-            transition: all 0.5s ease;
         }
 
         .glass-panel {
             background: var(--color-glass-dark);
             backdrop-filter: blur(12px) saturate(180%);
-            -webkit-backdrop-filter: blur(12px) saturate(180%);
             border: 1px solid rgba(14, 165, 233, 0.2);
             border-radius: 1rem;
             box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.47);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        .glass-panel:hover {
-            box-shadow: 0 0 45px 5px rgba(14, 165, 233, 0.3);
         }
 
         .neon-text {
             color: var(--color-accent-neon);
-            text-shadow: 0 0 5px var(--color-accent-neon), 0 0 10px rgba(14, 165, 233, 0.5);
-        }
-
-        .neon-border {
-            border: 1px solid var(--color-accent-neon);
-            box-shadow: 0 0 5px var(--color-accent-neon);
+            text-shadow: 0 0 5px var(--color-accent-neon);
         }
 
         .diag-good { color: #10b981; }
@@ -64,7 +48,6 @@
             color: #e2e8f0;
             padding: 0.75rem;
             border-radius: 0.5rem;
-            transition: all 0.3s;
         }
 
         .input-cyber:focus {
@@ -74,89 +57,101 @@
         }
 
         .rtl-font {
-            font-family: var(--font-urdu), var(--font-arabic), var(--font-english);
-        }
-        
-        .emergency-lock-active {
-            filter: grayscale(100%) brightness(50%);
-            pointer-events: none;
-            cursor: not-allowed;
-            border: 5px dashed #f87171 !important;
-        }
-        
-        .output-scroll::-webkit-scrollbar {
-            width: 8px;
-        }
-        .output-scroll::-webkit-scrollbar-thumb {
-            background-color: rgba(14, 165, 233, 0.4);
-            border-radius: 4px;
-        }
-        .output-scroll::-webkit-scrollbar-track {
-            background-color: transparent;
+            font-family: 'Noto Nastaliq Urdu', 'Cairo', 'Montserrat', sans-serif;
         }
 
-        @media (max-width: 1024px) {
-            .dashboard-grid {
-                grid-template-columns: 1fr;
-                grid-template-rows: auto;
-            }
-            .canvas-container {
-                height: 300px !important;
-            }
+        .permission-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .permission-modal.active {
+            display: flex;
+        }
+
+        .listening {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
         }
     </style>
 </head>
 
 <body class="p-4 md:p-8">
 
-    <div id="A_CORE_DASHBOARD" class="dashboard-grid grid grid-cols-1 lg:grid-cols-4 gap-6 min-h-[95vh]">
+    <!-- Permission Modal -->
+    <div id="permissionModal" class="permission-modal">
+        <div class="glass-panel p-8 max-w-2xl">
+            <h2 class="text-2xl font-bold mb-4 neon-text">🔐 Permission Required</h2>
+            <div id="permissionContent" class="mb-6"></div>
+            <div class="flex space-x-4">
+                <button onclick="AEGIS.approvePermission()" class="bg-green-600 hover:bg-green-700 px-6 py-3 rounded-lg font-bold">
+                    ✅ Allow
+                </button>
+                <button onclick="AEGIS.denyPermission()" class="bg-red-600 hover:bg-red-700 px-6 py-3 rounded-lg font-bold">
+                    ❌ Deny
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 min-h-[95vh]">
 
         <div class="lg:col-span-3 flex flex-col space-y-6">
 
             <header class="flex flex-col md:flex-row justify-between items-start md:items-center p-4 glass-panel">
-                <h1 class="text-3xl font-bold tracking-wider neon-text">AEGIS :: Command Nexus</h1>
-                <div id="D_HUD_NERVE_CENTER" class="text-xs mt-3 md:mt-0 space-x-4">
-                    <span id="D_NET" class="diag-good">NET: Optimal</span>
-                    <span id="D_MIC" class="diag-warn">MIC: Denied</span>
-                    <span id="D_LAT" class="diag-good">LAT: 80ms</span>
-                    <span id="D_LOAD" class="diag-good">LOAD: 0.1%</span>
+                <h1 class="text-3xl font-bold tracking-wider neon-text">AEGIS v12 :: Voice & Plugins</h1>
+                <div class="text-xs mt-3 md:mt-0 space-x-4">
+                    <span id="statusBridge" class="diag-warn">BRIDGE: OFFLINE</span>
+                    <span id="statusPython" class="diag-warn">PYTHON: OFFLINE</span>
+                    <span id="statusVoice" class="diag-warn">VOICE: OFF</span>
                 </div>
             </header>
 
             <div class="glass-panel p-6 flex-grow flex flex-col h-[50vh] lg:h-[70vh]">
-                <h2 class="text-xl font-semibold mb-3 border-b border-gray-700 pb-2">Operational Log <span id="L_LANG" class="text-xs ml-2 opacity-60">EN</span></h2>
-                <div id="C_OUTPUT_LOG" class="flex-grow output-scroll overflow-y-auto text-sm leading-relaxed p-2" dir="ltr">
-                    <p class="mb-2 text-gray-400">[[ INITIALIZING_PROTOCOLS ]]</p>
-                    <p class="mb-2 text-gray-400 neon-text">AEGIS_V5.1.2: System heartbeat confirmed. Awaiting user input.</p>
+                <h2 class="text-xl font-semibold mb-3 border-b border-gray-700 pb-2">
+                    Operational Log <span id="langIndicator" class="text-xs ml-2 opacity-60">EN</span>
+                </h2>
+                <div id="outputLog" class="flex-grow overflow-y-auto text-sm leading-relaxed p-2" dir="ltr">
+                    <p class="mb-2 text-gray-400">[[ AEGIS v12 Initializing... ]]</p>
                 </div>
             </div>
 
             <div class="glass-panel p-4 flex flex-col space-y-4">
                 <div class="flex space-x-3">
-                    <input type="text" id="C_INPUT_TEXT" placeholder="Enter Command or Query..."
-                        class="input-cyber flex-grow text-lg" onkeypress="if(event.key === 'Enter') _AEGIS_CORE._H_EXEC_CMD();">
-                    <button id="C_BTN_SUBMIT" onclick="_AEGIS_CORE._H_EXEC_CMD()"
-                        class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transition duration-200">
+                    <input type="text" id="inputText" placeholder="Enter command or ask anything..."
+                        class="input-cyber flex-grow text-lg" onkeypress="if(event.key==='Enter') AEGIS.executeCommand();">
+                    <button id="btnMic" onclick="AEGIS.toggleVoice()"
+                        class="bg-purple-600 hover:bg-purple-700 px-4 rounded-lg">
+                        🎤
+                    </button>
+                    <button onclick="AEGIS.executeCommand()"
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg">
                         Execute
                     </button>
                 </div>
                 <div class="flex space-x-3 text-xs justify-between">
-                    <select id="C_LANG_SEL" class="input-cyber w-32" onchange="_AEGIS_CORE._H_SET_LANG(this.value)">
-                        <option value="en">English (EN)</option>
-                        <option value="ur">اردو (UR)</option>
-                        <option value="ar">العربية (AR)</option>
+                    <select id="langSelect" class="input-cyber w-32" onchange="AEGIS.setLanguage(this.value)">
+                        <option value="en">English</option>
+                        <option value="ur">اردو</option>
+                        <option value="ar">العربية</option>
                     </select>
-                    <button id="C_BTN_TTS" onclick="_AEGIS_CORE._H_TOGGLE_TTS()"
-                        class="bg-gray-700 hover:bg-gray-600 py-1 px-3 rounded-full transition duration-200">
-                        <span id="C_TTS_STATUS">TTS: OFF</span>
+                    <button onclick="AEGIS.listPlugins()" class="bg-gray-700 hover:bg-gray-600 py-1 px-3 rounded-full">
+                        📦 Plugins
                     </button>
-                    <button id="C_BTN_REF" onclick="_AEGIS_CORE._H_TRIGGER_REFRACTOR()"
-                        class="bg-purple-900 hover:bg-purple-800 py-1 px-3 rounded-full transition duration-200">
-                        Self-Optimize
-                    </button>
-                    <button id="C_BTN_LOCK" onclick="_AEGIS_CORE._H_TRIGGER_LOCK()"
-                        class="bg-red-800 hover:bg-red-700 py-1 px-3 rounded-full transition duration-200 font-bold">
-                        Emergency Lock
+                    <button onclick="AEGIS.reloadPlugins()" class="bg-purple-900 hover:bg-purple-800 py-1 px-3 rounded-full">
+                        🔄 Reload
                     </button>
                 </div>
             </div>
@@ -164,38 +159,30 @@
 
         <div class="lg:col-span-1 flex flex-col space-y-6">
             
-            <div class="glass-panel p-2 flex flex-col items-center justify-center h-64 lg:h-96 canvas-container">
-                <h2 class="text-lg font-semibold mb-2 neon-text">AEGIS 3D Interface</h2>
-                <canvas id="A_3D_CANVAS" class="w-full h-full rounded-lg"></canvas>
+            <div class="glass-panel p-2 flex flex-col items-center justify-center h-64 lg:h-96">
+                <h2 class="text-lg font-semibold mb-2 neon-text">3D Interface</h2>
+                <canvas id="canvas3d" class="w-full h-full rounded-lg"></canvas>
             </div>
 
             <div class="glass-panel p-4 flex-grow">
                 <h2 class="text-xl font-semibold mb-3 border-b border-gray-700 pb-2">System Status</h2>
                 
                 <ul class="text-sm space-y-2">
-                    <li class="flex justify-between items-center py-1">
-                        <span class="opacity-80">Security Protocol Level:</span>
-                        <span id="S_SEC_LEVEL" class="diag-good font-mono">L5/CRYPTOSHIELD</span>
+                    <li class="flex justify-between py-1">
+                        <span class="opacity-80">Mode:</span>
+                        <span class="diag-good font-mono">EDUCATIONAL</span>
                     </li>
-                    <li class="flex justify-between items-center py-1">
-                        <span class="opacity-80">Python Bridge:</span>
-                        <span id="S_BRIDGE_STAT" class="diag-warn font-mono">OFFLINE</span>
+                    <li class="flex justify-between py-1">
+                        <span class="opacity-80">Plugins Loaded:</span>
+                        <span id="pluginCount" class="diag-good font-mono">0</span>
                     </li>
-                    <li class="flex justify-between items-center py-1">
-                        <span class="opacity-80">API Status:</span>
-                        <span id="S_API_STAT" class="diag-warn font-mono">SIMULATION MODE</span>
+                    <li class="flex justify-between py-1">
+                        <span class="opacity-80">API:</span>
+                        <span id="statusAPI" class="diag-good font-mono">GROQ/PROXY</span>
                     </li>
-                    <li class="flex justify-between items-center py-1">
-                        <span class="opacity-80">Refactoring Module State:</span>
-                        <span id="S_REF_STAT" class="diag-good font-mono">IDLE/READY</span>
-                    </li>
-                    <li class="flex justify-between items-center py-1">
-                        <span class="opacity-80">Emergency Lock State:</span>
-                        <span id="S_LOCK_STAT" class="diag-good font-mono">DISENGAGED</span>
-                    </li>
-                    <li class="flex justify-between items-center py-1">
-                        <span class="opacity-80">Last Response Time:</span>
-                        <span id="S_LAST_LAT" class="diag-good font-mono">0ms</span>
+                    <li class="flex justify-between py-1">
+                        <span class="opacity-80">Memory Mode:</span>
+                        <span class="diag-good font-mono">LIGHTWEIGHT</span>
                     </li>
                 </ul>
             </div>
@@ -204,516 +191,301 @@
     </div>
 
 <script>
-    const _AEGIS_CORE = (function() {
-        "use strict";
+const AEGIS = (function() {
+    'use strict';
 
-        // API CONFIGURATION
-        const _C_API_URL = "https://api.anthropic.com/v1/messages";
-        const _C_MODEL = "claude-sonnet-4-20250514";
-        
-        // LOCAL BRIDGE CONNECTION
-        let _S_BRIDGE_WS = null;
-        let _S_BRIDGE_CONNECTED = false;
-        
-        let _S_MASTER_LOCKED = false;
-        let _S_CURRENT_LANG = 'en';
-        let _S_TTS_ACTIVE = false;
-        let _S_LAST_LATENCY = 0;
-        let _S_VOICES_LOADED = false;
+    let ws = null;
+    let currentLang = 'en';
+    let voiceActive = false;
+    let recognition = null;
+    let pendingPermission = null;
 
-        const _H_D_LOG = document.getElementById('C_OUTPUT_LOG');
-        const _H_D_INPUT = document.getElementById('C_INPUT_TEXT');
-        const _H_D_DASHBOARD = document.getElementById('A_CORE_DASHBOARD');
-        const _H_D_LOCK_STAT = document.getElementById('S_LOCK_STAT');
-        const _H_D_TTS_STAT = document.getElementById('C_TTS_STATUS');
-        const _H_D_LANG_IND = document.getElementById('L_LANG');
-        const _H_D_LAST_LAT = document.getElementById('S_LAST_LAT');
-        const _H_D_REF_STAT = document.getElementById('S_REF_STAT');
-        const _H_D_API_STAT = document.getElementById('S_API_STAT');
-        const _H_D_BRIDGE_STAT = document.getElementById('S_BRIDGE_STAT');
+    const elements = {
+        log: document.getElementById('outputLog'),
+        input: document.getElementById('inputText'),
+        statusBridge: document.getElementById('statusBridge'),
+        statusPython: document.getElementById('statusPython'),
+        statusVoice: document.getElementById('statusVoice'),
+        pluginCount: document.getElementById('pluginCount'),
+        langIndicator: document.getElementById('langIndicator'),
+        btnMic: document.getElementById('btnMic'),
+        permissionModal: document.getElementById('permissionModal'),
+        permissionContent: document.getElementById('permissionContent')
+    };
 
-        const _H_TRIGGER_LOCK = function() {
-            _S_MASTER_LOCKED = !_S_MASTER_LOCKED;
-            if (_S_MASTER_LOCKED) {
-                _H_D_DASHBOARD.classList.add('emergency-lock-active');
-                _H_D_LOCK_STAT.textContent = "ENGAGED";
-                _H_D_LOCK_STAT.className = 'diag-critical font-mono';
-                _H_D_LOG.innerHTML += `<p class="neon-text diag-critical mt-2">[[ WARNING: MASTER EMERGENCY LOCK ACTIVATED. ALL OPERATIONS SUSPENDED. ]]</p>`;
-                _H_TTS_SPEAK("Emergency Lock Activated. System operations suspended.");
-            } else {
-                _H_D_DASHBOARD.classList.remove('emergency-lock-active');
-                _H_D_LOCK_STAT.textContent = "DISENGAGED";
-                _H_D_LOCK_STAT.className = 'diag-good font-mono';
-                _H_D_LOG.innerHTML += `<p class="neon-text diag-good mt-2">[[ LOCK_OVERRIDE: Master systems restored. Resuming operations. ]]</p>`;
-            }
-            _H_D_LOG.scrollTop = _H_D_LOG.scrollHeight;
+    function log(msg, type = 'info') {
+        const colors = {
+            info: 'text-white',
+            success: 'text-green-400',
+            error: 'text-red-400',
+            warning: 'text-yellow-400',
+            system: 'text-blue-400'
         };
 
-        // === BRIDGE CONNECTION ===
+        const dir = (currentLang === 'ur' || currentLang === 'ar') ? 'rtl' : 'ltr';
+        elements.log.innerHTML += `<p dir="${dir}" class="mb-1 ${colors[type]}">${msg}</p>`;
+        elements.log.scrollTop = elements.log.scrollHeight;
+    }
 
-        const _H_CONNECT_BRIDGE = function() {
-            try {
-                // Connect directly to Python (bridge optional for lightweight mode)
-                _S_BRIDGE_WS = new WebSocket('ws://localhost:8765');
-                
-                _S_BRIDGE_WS.onopen = () => {
-                    _S_BRIDGE_CONNECTED = true;
-                    _H_D_BRIDGE_STAT.textContent = "CONNECTED";
-                    _H_D_BRIDGE_STAT.className = 'diag-good font-mono';
-                    _H_D_LOG.innerHTML += `<p class="neon-text diag-good mt-2">[[ BRIDGE: Connected to Python executor ]]</p>`;
-                    _H_D_LOG.scrollTop = _H_D_LOG.scrollHeight;
-                };
-                
-                _S_BRIDGE_WS.onmessage = (event) => {
-                    try {
-                        const response = JSON.parse(event.data);
-                        const dir = (_S_CURRENT_LANG === 'ur' || _S_CURRENT_LANG === 'ar') ? 'rtl' : 'ltr';
-                        
-                        if (response.success) {
-                            const msg = response.message || JSON.stringify(response.data);
-                            _H_D_LOG.innerHTML += `<p dir="${dir}" class="mb-2 text-green-400">✅ ${msg}</p>`;
-                            _H_TTS_SPEAK(response.message || "Command executed successfully");
+    function connectBridge() {
+        try {
+            ws = new WebSocket('ws://localhost:3000');
+
+            ws.onopen = () => {
+                elements.statusBridge.textContent = 'BRIDGE: ONLINE';
+                elements.statusBridge.className = 'diag-good';
+                log('✅ Connected to AEGIS Bridge', 'success');
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+
+                    if (data.type === 'ai_response') {
+                        log(`AEGIS: ${data.message}`, 'success');
+                        speak(data.message);
+                    } else if (data.type === 'python_response') {
+                        if (data.data.success) {
+                            const msg = data.data.message || JSON.stringify(data.data.data);
+                            log(`✅ ${msg}`, 'success');
                         } else {
-                            _H_D_LOG.innerHTML += `<p dir="${dir}" class="mb-2 text-red-400">❌ ${response.message}</p>`;
-                            _H_TTS_SPEAK("Command failed");
+                            log(`❌ ${data.data.message}`, 'error');
                         }
-                        _H_D_LOG.scrollTop = _H_D_LOG.scrollHeight;
-                    } catch (e) {
-                        console.error('Parse error:', e);
+                    } else if (data.type === 'connection') {
+                        elements.statusPython.textContent = 'PYTHON: ONLINE';
+                        elements.statusPython.className = 'diag-good';
                     }
-                };
-                
-                _S_BRIDGE_WS.onerror = (error) => {
-                    console.error('Bridge error:', error);
-                };
-                
-                _S_BRIDGE_WS.onclose = () => {
-                    _S_BRIDGE_CONNECTED = false;
-                    _H_D_BRIDGE_STAT.textContent = "OFFLINE";
-                    _H_D_BRIDGE_STAT.className = 'diag-warn font-mono';
-                    setTimeout(_H_CONNECT_BRIDGE, 5000);
-                };
-                
-            } catch (error) {
-                console.error('Connection failed:', error);
-                setTimeout(_H_CONNECT_BRIDGE, 5000);
-            }
-        };
-
-        const _H_SEND_TO_BRIDGE = function(action, params) {
-            if (!_S_BRIDGE_CONNECTED || !_S_BRIDGE_WS) {
-                _H_D_LOG.innerHTML += `<p class="text-yellow-400 mt-2">⚠️ Bridge offline. Start Python executor first.</p>`;
-                _H_D_LOG.scrollTop = _H_D_LOG.scrollHeight;
-                return;
-            }
-            
-            const command = { action, params };
-            _S_BRIDGE_WS.send(JSON.stringify(command));
-        };
-
-        const _H_SET_LANG = function(langCode) {
-            _S_CURRENT_LANG = langCode;
-            const isRTL = (langCode === 'ur' || langCode === 'ar');
-            
-            _H_D_LOG.dir = isRTL ? 'rtl' : 'ltr';
-            _H_D_LOG.classList.toggle('rtl-font', isRTL);
-            
-            _H_D_LANG_IND.textContent = langCode.toUpperCase();
-            
-            const message = {
-                en: "Language set to English.",
-                ur: "زبان اردو پر سیٹ کر دی گئی ہے۔",
-                ar: "تم تعيين اللغة إلى العربية."
-            }[langCode];
-
-            _H_D_LOG.innerHTML += `<p class="mt-2 text-yellow-500">${message}</p>`;
-            _H_D_LOG.scrollTop = _H_D_LOG.scrollHeight;
-        };
-
-        const _H_GROQ_QUERY = async function(prompt) {
-            const startTime = performance.now();
-            
-            try {
-                // Using Claude API (no API key needed in claude.ai!)
-                const response = await fetch(_C_API_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        model: _C_MODEL,
-                        max_tokens: 1000,
-                        messages: [
-                            {
-                                role: "user",
-                                content: `You are AEGIS, an advanced AI assistant. Respond concisely and professionally in ${_S_CURRENT_LANG === 'ur' ? 'Urdu' : _S_CURRENT_LANG === 'ar' ? 'Arabic' : 'English'}. User query: ${prompt}`
-                            }
-                        ]
-                    })
-                });
-
-                if (!response.ok) {
-                    throw new Error(`API_ERROR_${response.status}`);
+                } catch (e) {
+                    console.error('Parse error:', e);
                 }
-
-                const data = await response.json();
-                const endTime = performance.now();
-                _S_LAST_LATENCY = Math.round(endTime - startTime);
-                _H_D_LAST_LAT.textContent = `${_S_LAST_LATENCY}ms`;
-                _H_D_LAST_LAT.className = _S_LAST_LATENCY < 500 ? 'diag-good font-mono' : 'diag-warn font-mono';
-                
-                _H_D_API_STAT.textContent = "CONNECTED";
-                _H_D_API_STAT.className = 'diag-good font-mono';
-
-                // Extract text from Claude's response format
-                const textContent = data.content.find(block => block.type === 'text');
-                return textContent ? textContent.text : data.content[0].text;
-
-            } catch (error) {
-                console.error("LLM Execution Failure:", error);
-                
-                const endTime = performance.now();
-                _S_LAST_LATENCY = Math.round(endTime - startTime);
-                _H_D_LAST_LAT.textContent = `${_S_LAST_LATENCY}ms`;
-                _H_D_LAST_LAT.className = 'diag-critical font-mono';
-                
-                _H_D_API_STAT.textContent = "SIMULATION MODE";
-                _H_D_API_STAT.className = 'diag-warn font-mono';
-
-                // Fallback to simulation
-                return _H_SIM_AI_RESPONSE(prompt);
-            }
-        };
-
-        const _H_SIM_AI_RESPONSE = function(prompt) {
-            const promptLower = prompt.toLowerCase();
-            const lang = _S_CURRENT_LANG;
-
-            if (promptLower.includes("hello") || promptLower.includes("hi") || promptLower.includes("سلام")) {
-                return {
-                    en: "AEGIS online. How may I assist your enterprise command core today?",
-                    ur: "AEGIS آن لائن ہے۔ میں آج آپ کے انٹرپرائز کمانڈ کور کی کیسے مدد کر سکتا ہوں؟",
-                    ar: "AEGIS متصل. كيف يمكنني مساعدة مركز القيادة الخاص بك اليوم؟"
-                }[lang];
-            } else if (promptLower.includes("security") || promptLower.includes("سیکیورٹی")) {
-                return {
-                    en: "Security review initiated. Current threat level: GREEN. All protocols L5 active and monitoring 24/7.",
-                    ur: "سیکیورٹی کا جائزہ شروع کیا گیا۔ موجودہ خطرے کی سطح: سبز۔ تمام پروٹوکول L5 فعال اور 24/7 نگرانی کر رہے ہیں۔",
-                    ar: "بدأت مراجعة الأمان. مستوى التهديد الحالي: أخضر. جميع البروتوكولات L5 نشطة ومراقبة 24/7."
-                }[lang];
-            } else if (promptLower.includes("weather") || promptLower.includes("موسم")) {
-                return {
-                    en: "Weather data unavailable in simulation mode. In production, I would query real-time weather APIs.",
-                    ur: "سمیولیشن موڈ میں موسم کا ڈیٹا دستیاب نہیں۔ پروڈکشن میں، میں حقیقی وقت کے موسم APIs سے استفسار کروں گا۔",
-                    ar: "بيانات الطقس غير متوفرة في وضع المحاكاة. في الإنتاج، سأستعلم عن واجهات برمجة تطبيقات الطقس في الوقت الفعلي."
-                }[lang];
-            } else {
-                return {
-                    en: `Query processed in ${lang.toUpperCase()}. Task analysis complete. Note: Currently running in SIMULATION MODE. Configure a valid Groq API key for live AI responses.`,
-                    ur: `${lang.toUpperCase()} میں سوال پر کارروائی ہوئی۔ ٹاسک کا تجزیہ مکمل ہوا۔ نوٹ: فی الوقت SIMULATION MODE میں چل رہا ہے۔ لائیو AI جوابات کے لیے ایک درست Groq API کلید کنفیگر کریں۔`,
-                    ar: `تمت معالجة الاستعلام في ${lang.toUpperCase()}. اكتمل تحليل المهمة. ملاحظة: يعمل حاليًا في وضع المحاكاة. قم بتكوين مفتاح Groq API صالح للحصول على استجابات AI مباشرة.`
-                }[lang];
-            }
-        };
-
-        const _H_TTS_SPEAK = function(text) {
-            if (!_S_TTS_ACTIVE || !_S_VOICES_LOADED) return;
-            if (!('speechSynthesis' in window)) {
-                console.warn("TTS not supported in this browser.");
-                return;
-            }
-
-            window.speechSynthesis.cancel();
-
-            const utterance = new SpeechSynthesisUtterance(text);
-            const voices = window.speechSynthesis.getVoices();
-            
-            let selectedVoice = null;
-            
-            if (_S_CURRENT_LANG === 'ur') {
-                selectedVoice = voices.find(v => v.lang.startsWith('hi') || v.lang.startsWith('ur'));
-                utterance.lang = 'ur-PK';
-                utterance.pitch = 1.1;
-                utterance.rate = 0.85;
-            } else if (_S_CURRENT_LANG === 'ar') {
-                selectedVoice = voices.find(v => v.lang.startsWith('ar'));
-                utterance.lang = 'ar-SA';
-                utterance.pitch = 1.0;
-                utterance.rate = 0.9;
-            } else {
-                selectedVoice = voices.find(v => v.lang.startsWith('en'));
-                utterance.lang = 'en-US';
-                utterance.pitch = 0.95;
-                utterance.rate = 1.0;
-            }
-
-            if (selectedVoice) {
-                utterance.voice = selectedVoice;
-            }
-
-            utterance.onerror = function(event) {
-                console.error('TTS Error:', event.error);
             };
 
-            window.speechSynthesis.speak(utterance);
-        };
-
-        const _H_TOGGLE_TTS = function() {
-            _S_TTS_ACTIVE = !_S_TTS_ACTIVE;
-            _H_D_TTS_STAT.textContent = `TTS: ${_S_TTS_ACTIVE ? 'ON' : 'OFF'}`;
-            const parentBtn = _H_D_TTS_STAT.parentElement;
-            
-            if (_S_TTS_ACTIVE) {
-                parentBtn.classList.remove('bg-gray-700');
-                parentBtn.classList.add('bg-green-700');
-                _H_D_TTS_STAT.classList.add('neon-text');
-                
-                if (_S_VOICES_LOADED) {
-                    _H_TTS_SPEAK("Voice synthesis activated.");
-                } else {
-                    _H_D_LOG.innerHTML += `<p class="text-yellow-500 mt-2">[[ TTS: Waiting for voice data to load... ]]</p>`;
-                    _H_D_LOG.scrollTop = _H_D_LOG.scrollHeight;
-                }
-            } else {
-                window.speechSynthesis.cancel();
-                parentBtn.classList.add('bg-gray-700');
-                parentBtn.classList.remove('bg-green-700');
-                _H_D_TTS_STAT.classList.remove('neon-text');
-            }
-        };
-
-        const _H_UNIVERSAL_HANDLER = function(command) {
-            if (_S_MASTER_LOCKED) return "Execution blocked by Master Lock.";
-
-            const cmd = command.toLowerCase();
-
-            if (cmd.startsWith('run protocol')) {
-                const protocolName = cmd.split(' ')[2] || 'Aegis://Default_Task';
-                return `Universal Handler dispatching protocol: <span class="text-blue-400">${protocolName}</span>. (Simulated execution handshake complete).`;
-            } else if (cmd.startsWith('file access')) {
-                return "SECURITY VIOLATION_0x44. Client browser context denies direct file system access. Proxy request queued.";
-            } else {
-                return "Handler: Command syntax unknown. Defaulting to LLM query.";
-            }
-        };
-        
-        const _H_TRIGGER_REFRACTOR = function() {
-            if (_S_MASTER_LOCKED) return;
-
-            _H_D_REF_STAT.textContent = 'EXECUTING...';
-            _H_D_REF_STAT.className = 'diag-warn font-mono';
-            _H_D_LOG.innerHTML += `<p class="neon-text mt-2">[[ REFACTORING_MODULE: Initiating deep execution path analysis... ]]</p>`;
-            _H_D_LOG.scrollTop = _H_D_LOG.scrollHeight;
-            _H_TTS_SPEAK("Self-optimization protocol commencing.");
-
-            setTimeout(() => {
-                const efficiencyGain = (Math.random() * 0.10 + 0.01).toFixed(2);
-                _H_D_LOG.innerHTML += `<p class="neon-text diag-good">[[ REFACTORING_COMPLETE: Internal execution paths optimized. Performance gain: ${efficiencyGain}% ]]</p>`;
-                _H_D_REF_STAT.textContent = 'IDLE/READY';
-                _H_D_REF_STAT.className = 'diag-good font-mono';
-                _H_D_LOG.scrollTop = _H_D_LOG.scrollHeight;
-            }, 3000);
-        };
-
-        const _H_EXEC_CMD = async function() {
-            if (_S_MASTER_LOCKED) {
-                _H_D_LOG.innerHTML += `<p class="diag-critical mt-2">ACCESS DENIED: Master Lock active.</p>`;
-                _H_D_LOG.scrollTop = _H_D_LOG.scrollHeight;
-                return;
-            }
-
-            const userPrompt = _H_D_INPUT.value.trim();
-            if (!userPrompt) return;
-
-            _H_D_INPUT.value = '';
-            
-            const userTextDir = (_S_CURRENT_LANG === 'ur' || _S_CURRENT_LANG === 'ar') ? 'rtl' : 'ltr';
-            _H_D_LOG.innerHTML += `<p dir="${userTextDir}" class="mb-1 text-blue-300 font-semibold">${_S_CURRENT_LANG.toUpperCase()} >> ${userPrompt}</p>`;
-            
-            const analyzingMsg = document.createElement('p');
-            analyzingMsg.className = 'text-gray-500 analyzing-msg';
-            analyzingMsg.textContent = 'AEGIS >> Analyzing...';
-            _H_D_LOG.appendChild(analyzingMsg);
-            _H_D_LOG.scrollTop = _H_D_LOG.scrollHeight;
-
-            let response = null;
-            const promptLower = userPrompt.toLowerCase();
-            
-            // Check for bridge commands first
-            if (promptLower.startsWith('open ')) {
-                const appName = promptLower.replace('open ', '').trim();
-                _H_SEND_TO_BRIDGE('open_app', { app: appName });
-                analyzingMsg.remove();
-                return;
-            } else if (promptLower === 'system info') {
-                _H_SEND_TO_BRIDGE('system_info', {});
-                analyzingMsg.remove();
-                return;
-            } else if (promptLower.startsWith('list ')) {
-                const path = userPrompt.substring(5).trim();
-                _H_SEND_TO_BRIDGE('list_dir', { path: path });
-                analyzingMsg.remove();
-                return;
-            } else if (promptLower === 'emergency lock') {
-                analyzingMsg.remove();
-                _H_TRIGGER_LOCK();
-                return;
-            } else if (promptLower.includes('self-refactor') || promptLower.includes('self-optimize')) {
-                analyzingMsg.remove();
-                _H_TRIGGER_REFRACTOR();
-                response = "Self-optimization sequence initiated. Monitor the system status panel for progress.";
-            } else if (promptLower.includes('universal handler')) {
-                response = _H_UNIVERSAL_HANDLER(userPrompt);
-            } else {
-                response = await _H_GROQ_QUERY(userPrompt);
-            }
-
-            analyzingMsg.remove();
-            
-            const agentTextDir = (_S_CURRENT_LANG === 'ur' || _S_CURRENT_LANG === 'ar') ? 'rtl' : 'ltr';
-            _H_D_LOG.innerHTML += `<p dir="${agentTextDir}" class="mb-2 rtl-font text-white">${response}</p>`;
-            _H_D_LOG.scrollTop = _H_D_LOG.scrollHeight;
-
-            _H_TTS_SPEAK(response);
-        };
-
-        const _H_UPDATE_HUD = function() {
-            if (_S_MASTER_LOCKED) return;
-            
-            const netStatus = Math.random();
-            const netEl = document.getElementById('D_NET');
-            if (netStatus < 0.1) {
-                netEl.textContent = "NET: Degradation";
-                netEl.className = 'diag-critical';
-            } else if (netStatus < 0.3) {
-                netEl.textContent = "NET: Suboptimal";
-                netEl.className = 'diag-warn';
-            } else {
-                netEl.textContent = "NET: Optimal";
-                netEl.className = 'diag-good';
-            }
-
-            if (navigator.permissions) {
-                navigator.permissions.query({ name: 'microphone' }).then(result => {
-                    const micEl = document.getElementById('D_MIC');
-                    const state = result.state;
-                    micEl.textContent = `MIC: ${state.toUpperCase()}`;
-                    micEl.className = state === 'granted' ? 'diag-good' : (state === 'prompt' ? 'diag-warn' : 'diag-critical');
-                }).catch(() => {
-                    document.getElementById('D_MIC').textContent = 'MIC: Error';
-                    document.getElementById('D_MIC').className = 'diag-critical';
-                });
-            }
-
-            document.getElementById('D_LOAD').textContent = `LOAD: 0.${Math.floor(Math.random() * 9) + 1}%`;
-        };
-
-        let scene, camera, renderer, assistantMesh, light;
-        const _H_INIT_3D = function() {
-            const container = document.getElementById('A_3D_CANVAS');
-            if (!container) return;
-            
-            scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
-            renderer = new THREE.WebGLRenderer({ canvas: container, alpha: true, antialias: true });
-            renderer.setSize(container.clientWidth, container.clientHeight);
-            renderer.setPixelRatio(window.devicePixelRatio);
-
-            const geometry = new THREE.SphereGeometry(1, 32, 32);
-            const material = new THREE.MeshStandardMaterial({
-                color: 0x0ea5e9,
-                emissive: 0x002244,
-                roughness: 0.1,
-                metalness: 0.9,
-            });
-            assistantMesh = new THREE.Mesh(geometry, material);
-            scene.add(assistantMesh);
-
-            scene.add(new THREE.AmbientLight(0x404040, 5));
-
-            light = new THREE.PointLight(0x0ea5e9, 5, 50);
-            light.position.set(0, 0, 5);
-            scene.add(light);
-
-            camera.position.z = 3;
-
-            const animate = function() {
-                requestAnimationFrame(animate);
-
-                if (!_S_MASTER_LOCKED) {
-                    assistantMesh.rotation.x += 0.001;
-                    assistantMesh.rotation.y += 0.003;
-                    
-                    const time = performance.now() * 0.001;
-                    light.intensity = 5 + Math.sin(time * 2) * 2; 
-                }
-
-                renderer.render(scene, camera);
+            ws.onerror = () => {
+                elements.statusBridge.textContent = 'BRIDGE: ERROR';
+                elements.statusBridge.className = 'diag-critical';
             };
-            
-            animate();
 
-            window.addEventListener('resize', () => {
-                const width = container.clientWidth;
-                const height = container.clientHeight;
-                camera.aspect = width / height;
-                camera.updateProjectionMatrix();
-                renderer.setSize(width, height);
-            });
-        };
+            ws.onclose = () => {
+                elements.statusBridge.textContent = 'BRIDGE: OFFLINE';
+                elements.statusBridge.className = 'diag-warn';
+                log('⚠️ Bridge disconnected. Reconnecting...', 'warning');
+                setTimeout(connectBridge, 5000);
+            };
 
-        const _H_LOAD_VOICES = function() {
-            if ('speechSynthesis' in window) {
-                const loadVoices = () => {
-                    const voices = window.speechSynthesis.getVoices();
-                    if (voices.length > 0) {
-                        _S_VOICES_LOADED = true;
-                        console.log(`TTS: ${voices.length} voices loaded successfully.`);
-                        
-                        if (_S_TTS_ACTIVE) {
-                            _H_TTS_SPEAK("Voice synthesis ready.");
-                        }
-                    }
-                };
+        } catch (e) {
+            setTimeout(connectBridge, 5000);
+        }
+    }
 
-                loadVoices();
-                
-                if (window.speechSynthesis.onvoiceschanged !== undefined) {
-                    window.speechSynthesis.onvoiceschanged = loadVoices;
-                }
-            }
-        };
-
-        const _H_INIT_SYSTEM = function() {
-            _H_UPDATE_HUD();
-            _H_INIT_3D();
-            _H_SET_LANG('en');
-            _H_LOAD_VOICES();
-            _H_CONNECT_BRIDGE();
-            
-            setInterval(_H_UPDATE_HUD, 2000);
-            
-            _H_D_LOG.innerHTML += `<p class="text-green-400 mt-2">[[ Systems initialized. Lightweight mode active. ]]</p>`;
-            _H_D_LOG.innerHTML += `<p class="text-blue-300 mt-1">[[ Commands: "open notepad", "system info", "list C:\\Users" ]]</p>`;
-            _H_D_LOG.scrollTop = _H_D_LOG.scrollHeight;
-        };
-
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', _H_INIT_SYSTEM);
+    function sendToBridge(type, data) {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type, ...data }));
         } else {
-            _H_INIT_SYSTEM();
+            log('❌ Bridge not connected', 'error');
+        }
+    }
+
+    function executeCommand() {
+        const input = elements.input.value.trim();
+        if (!input) return;
+
+        elements.input.value = '';
+        log(`USER: ${input}`, 'system');
+
+        const lower = input.toLowerCase();
+
+        // Plugin commands
+        if (lower.startsWith('plugin ')) {
+            const pluginName = lower.replace('plugin ', '').trim();
+            sendToBridge('python_command', {
+                command: {
+                    action: 'plugin',
+                    params: { name: pluginName }
+                }
+            });
+        }
+        // System commands
+        else if (lower.startsWith('open ')) {
+            const app = lower.replace('open ', '').trim();
+            sendToBridge('python_command', {
+                command: {
+                    action: 'open_app',
+                    params: { app }
+                }
+            });
+        }
+        else if (lower === 'system info') {
+            sendToBridge('python_command', {
+                command: { action: 'system_info', params: {} }
+            });
+        }
+        else if (lower === 'list plugins') {
+            listPlugins();
+        }
+        // AI query
+        else {
+            sendToBridge('ai_query', {
+                message: input,
+                language: currentLang
+            });
+        }
+    }
+
+    function listPlugins() {
+        sendToBridge('python_command', {
+            command: { action: 'list_plugins', params: {} }
+        });
+    }
+
+    function reloadPlugins() {
+        sendToBridge('python_command', {
+            command: { action: 'reload_plugins', params: {} }
+        });
+    }
+
+    function setLanguage(lang) {
+        currentLang = lang;
+        elements.langIndicator.textContent = lang.toUpperCase();
+        const dir = (lang === 'ur' || lang === 'ar') ? 'rtl' : 'ltr';
+        elements.log.dir = dir;
+        log(`Language set to ${lang.toUpperCase()}`, 'system');
+    }
+
+    function toggleVoice() {
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+            log('❌ Voice not supported in this browser', 'error');
+            return;
         }
 
-        return {
-            _H_EXEC_CMD: _H_EXEC_CMD,
-            _H_SET_LANG: _H_SET_LANG,
-            _H_TOGGLE_TTS: _H_TOGGLE_TTS,
-            _H_TRIGGER_LOCK: _H_TRIGGER_LOCK,
-            _H_TRIGGER_REFRACTOR: _H_TRIGGER_REFRACTOR,
-            _S_GET_STATE: () => ({ L: _S_MASTER_LOCKED, Lang: _S_CURRENT_LANG, TTS: _S_TTS_ACTIVE })
-        };
+        if (!voiceActive) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
 
-    })();
+            recognition.onstart = () => {
+                voiceActive = true;
+                elements.statusVoice.textContent = 'VOICE: LISTENING';
+                elements.statusVoice.className = 'diag-good listening';
+                elements.btnMic.classList.add('listening');
+                log('🎤 Listening...', 'system');
+            };
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                elements.input.value = transcript;
+                log(`Heard: "${transcript}"`, 'system');
+                executeCommand();
+            };
+
+            recognition.onend = () => {
+                voiceActive = false;
+                elements.statusVoice.textContent = 'VOICE: OFF';
+                elements.statusVoice.className = 'diag-warn';
+                elements.btnMic.classList.remove('listening');
+            };
+
+            recognition.onerror = (event) => {
+                log(`Voice error: ${event.error}`, 'error');
+                voiceActive = false;
+            };
+
+            recognition.start();
+        } else {
+            if (recognition) recognition.stop();
+        }
+    }
+
+    function speak(text) {
+        if (!('speechSynthesis' in window)) return;
+
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = currentLang === 'ur' ? 'ur-PK' : currentLang === 'ar' ? 'ar-SA' : 'en-US';
+        window.speechSynthesis.speak(utterance);
+    }
+
+    function requestPermission(action, details) {
+        pendingPermission = { action, details };
+        elements.permissionContent.innerHTML = `
+            <p class="text-lg mb-2"><strong>Action:</strong> ${action}</p>
+            <p class="text-sm opacity-80">${details}</p>
+        `;
+        elements.permissionModal.classList.add('active');
+    }
+
+    function approvePermission() {
+        if (pendingPermission) {
+            log(`✅ Permission granted: ${pendingPermission.action}`, 'success');
+            // Execute approved action
+        }
+        elements.permissionModal.classList.remove('active');
+        pendingPermission = null;
+    }
+
+    function denyPermission() {
+        if (pendingPermission) {
+            log(`❌ Permission denied: ${pendingPermission.action}`, 'warning');
+        }
+        elements.permissionModal.classList.remove('active');
+        pendingPermission = null;
+    }
+
+    function init3D() {
+        const canvas = document.getElementById('canvas3d');
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+        renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+
+        const geometry = new THREE.SphereGeometry(1, 32, 32);
+        const material = new THREE.MeshStandardMaterial({
+            color: 0x0ea5e9,
+            emissive: 0x002244,
+            roughness: 0.1,
+            metalness: 0.9
+        });
+        const sphere = new THREE.Mesh(geometry, material);
+        scene.add(sphere);
+
+        scene.add(new THREE.AmbientLight(0x404040, 5));
+        const light = new THREE.PointLight(0x0ea5e9, 5, 50);
+        light.position.set(0, 0, 5);
+        scene.add(light);
+
+        camera.position.z = 3;
+
+        function animate() {
+            requestAnimationFrame(animate);
+            sphere.rotation.x += 0.001;
+            sphere.rotation.y += 0.003;
+            light.intensity = 5 + Math.sin(Date.now() * 0.002) * 2;
+            renderer.render(scene, camera);
+        }
+        animate();
+    }
+
+    function init() {
+        log('[[ AEGIS v12 - Voice & Plugin System ]]', 'system');
+        log('Educational Research Framework', 'system');
+        log('Connecting to bridge...', 'system');
+        
+        connectBridge();
+        init3D();
+    }
+
+    window.onload = init;
+
+    return {
+        executeCommand,
+        listPlugins,
+        reloadPlugins,
+        setLanguage,
+        toggleVoice,
+        approvePermission,
+        denyPermission
+    };
+})();
 </script>
 
 </body>
