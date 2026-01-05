@@ -666,10 +666,14 @@
         };
 
     })();
+    window.onerror = function(msg, url, line) {
+    alert("Error: " + msg + "\nLine: " + line);
+};
     // ==[ END PROFESSIONAL CORE ENGINE ]==
 </script>
 
 </body>
 
 </html>
+
 
