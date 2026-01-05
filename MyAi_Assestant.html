@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AEGIS Enterprise Command Core</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Font Imports for Multilingual Support -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&family=Montserrat:wght@300;400;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* Cyber-Noir Glassmorphism Base Styles */
+        :root {
+            --color-bg-deep: #020617; /* Slate-900 equivalent */
+            --color-accent-neon: #0ea5e9; /* Sky-500 */
+            --color-glass-dark: rgba(22, 28, 48, 0.6);
+            --color-glass-light: rgba(30, 41, 59, 0.4);
+            --font-english: 'Montserrat', sans-serif;
+            --font-urdu: 'Noto Nastaliq Urdu', serif;
+            --font-arabic: 'Cairo', sans-serif;
+        }
+
+        body {
+            background-color: var(--color-bg-deep);
+            background-image: radial-gradient(circle at 50% 10%, #1e40af33, transparent 70%);
+            font-family: var(--font-english);
+            color: #e2e8f0;
+            min-height: 100vh;
+            overflow-x: hidden;
+            transition: all 0.5s ease;
+        }
+
+        /* Glassmorphism Panel Class */
+        .glass-panel {
+            background: var(--color-glass-dark);
+            backdrop-filter: blur(12px) saturate(180%);
+            -webkit-backdrop-filter: blur(12px) saturate(180%);
+            border: 1px solid rgba(14, 165, 233, 0.2);
+            border-radius: 1rem;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.47);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .glass-panel:hover {
+            box-shadow: 0 0 45px 5px rgba(14, 165, 233, 0.3);
+        }
+
+        /* Neon Accent Styles */
+        .neon-text {
+            color: var(--color-accent-neon);
+            text-shadow: 0 0 5px var(--color-accent-neon), 0 0 10px rgba(14, 165, 233, 0.5);
+        }
+
+        .neon-border {
+            border: 1px solid var(--color-accent-neon);
+            box-shadow: 0 0 5px var(--color-accent-neon);
+        }
+
+        /* Diagnostic HUD Colors */
+        .diag-good { color: #10b981; } /* Emerald */
+        .diag-warn { color: #fbbf24; } /* Amber */
+        .diag-critical { color: #ef4444; } /* Red */
+
+        /* Input Customization */
+        .input-cyber {
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px solid rgba(14, 165, 233, 0.3);
+            color: #e2e8f0;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            transition: all 0.3s;
+        }
+
+        .input-cyber:focus {
+            outline: none;
+            border-color: var(--color-accent-neon);
+            box-shadow: 0 0 8px rgba(14, 165, 233, 0.6);
+        }
+
+        /* RTL Specific styles (for Nastaliq/Cairo) */
+        .rtl-font {
+            font-family: var(--font-urdu), var(--font-arabic), var(--font-english);
+        }
+        
+        /* Master Lock Visual State */
+        .emergency-lock-active {
+            filter: grayscale(100%) brightness(50%);
+            pointer-events: none;
+            cursor: not-allowed;
+            border: 5px dashed #f87171 !important;
+        }
+        
+        /* Custom scrollbar for output window */
+        .output-scroll::-webkit-scrollbar {
+            width: 8px;
+        }
+        .output-scroll::-webkit-scrollbar-thumb {
+            background-color: rgba(14, 165, 233, 0.4);
+            border-radius: 4px;
+        }
+        .output-scroll::-webkit-scrollbar-track {
+            background-color: transparent;
+        }
+
+        /* Media Queries for Responsiveness */
+        @media (max-width: 1024px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto;
+            }
+            .canvas-container {
+                height: 300px !important;
+            }
+        }
+    </style>
+</head>
+
+<body class="p-4 md:p-8">
+
+    <div id="A_CORE_DASHBOARD" class="dashboard-grid grid grid-cols-1 lg:grid-cols-4 gap-6 min-h-[95vh]">
+
+        <!-- Column 1 & 2: Main Interaction & Output -->
+        <div class="lg:col-span-3 flex flex-col space-y-6">
+
+            <!-- Header & Diagnostics HUD -->
+            <header class="flex flex-col md:flex-row justify-between items-start md:items-center p-4 glass-panel">
+                <h1 class="text-3xl font-bold tracking-wider neon-text">AEGIS :: Command Nexus</h1>
+                <div id="D_HUD_NERVE_CENTER" class="text-xs mt-3 md:mt-0 space-x-4">
+                    <span id="D_NET" class="diag-good">NET: Optimal</span>
+                    <span id="D_MIC" class="diag-warn">MIC: Denied</span>
+                    <span id="D_LAT" class="diag-good">LAT: 80ms</span>
+                    <span id="D_LOAD" class="diag-good">LOAD: 0.1%</span>
+                </div>
+            </header>
+
+            <!-- Main Output Console -->
+            <div class="glass-panel p-6 flex-grow flex flex-col h-[50vh] lg:h-[70vh]">
+                <h2 class="text-xl font-semibold mb-3 border-b border-gray-700 pb-2">Operational Log <span id="L_LANG" class="text-xs ml-2 opacity-60">EN</span></h2>
+                <div id="C_OUTPUT_LOG" class="flex-grow output-scroll overflow-y-auto text-sm leading-relaxed p-2" dir="ltr">
+                    <p class="mb-2 text-gray-400">[[ INITIALIZING_PROTOCOLS ]]</p>
+                    <p class="mb-2 text-gray-400 neon-text">AEGIS_V5.1.2: System heartbeat confirmed. Awaiting user input.</p>
+                </div>
+            </div>
+
+            <!-- Input & Controls -->
+            <div class="glass-panel p-4 flex flex-col space-y-4">
+                <div class="flex space-x-3">
+                    <input type="text" id="C_INPUT_TEXT" placeholder="Enter Command or Query..."
+                        class="input-cyber flex-grow text-lg" onkeypress="if(event.key === 'Enter') _AEGIS_CORE._H_EXEC_CMD();">
+                    <button id="C_BTN_SUBMIT" onclick="_AEGIS_CORE._H_EXEC_CMD()"
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-lg transition duration-200">
+                        Execute
+                    </button>
+                </div>
+                <div class="flex space-x-3 text-xs justify-between">
+                    <select id="C_LANG_SEL" class="input-cyber w-32" onchange="_AEGIS_CORE._H_SET_LANG(this.value)">
+                        <option value="en">English (EN)</option>
+                        <option value="ur">اردو (UR)</option>
+                        <option value="ar">العربية (AR)</option>
+                    </select>
+                    <button id="C_BTN_TTS" onclick="_AEGIS_CORE._H_TOGGLE_TTS()"
+                        class="bg-gray-700 hover:bg-gray-600 py-1 px-3 rounded-full transition duration-200">
+                        <span id="C_TTS_STATUS">TTS: OFF</span>
+                    </button>
+                    <button id="C_BTN_REF" onclick="_AEGIS_CORE._H_TRIGGER_REFRACTOR()"
+                        class="bg-purple-900 hover:bg-purple-800 py-1 px-3 rounded-full transition duration-200">
+                        Self-Optimize
+                    </button>
+                    <button id="C_BTN_LOCK" onclick="_AEGIS_CORE._H_TRIGGER_LOCK()"
+                        class="bg-red-800 hover:bg-red-700 py-1 px-3 rounded-full transition duration-200 font-bold">
+                        Emergency Lock
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Column 3: 3D Assistant & System Status -->
+        <div class="lg:col-span-1 flex flex-col space-y-6">
+            
+            <!-- 3D Assistant Interface (Canvas) -->
+            <div class="glass-panel p-2 flex flex-col items-center justify-center h-64 lg:h-96 canvas-container">
+                <h2 class="text-lg font-semibold mb-2 neon-text">AEGIS 3D Interface</h2>
+                <canvas id="A_3D_CANVAS" class="w-full h-full rounded-lg"></canvas>
+            </div>
+
+            <!-- Security & Automation Status -->
+            <div class="glass-panel p-4 flex-grow">
+                <h2 class="text-xl font-semibold mb-3 border-b border-gray-700 pb-2">System Status</h2>
+                
+                <ul class="text-sm space-y-2">
+                    <li class="flex justify-between items-center py-1">
+                        <span class="opacity-80">Security Protocol Level:</span>
+                        <span id="S_SEC_LEVEL" class="diag-good font-mono">L5/CRYPTOSHIELD</span>
+                    </li>
+                    <li class="flex justify-between items-center py-1">
+                        <span class="opacity-80">Universal Handler Status:</span>
+                        <span id="S_HANDLER_STAT" class="diag-warn font-mono">PARTIAL (Web Context)</span>
+                    </li>
+                    <li class="flex justify-between items-center py-1">
+                        <span class="opacity-80">Refactoring Module State:</span>
+                        <span id="S_REF_STAT" class="diag-good font-mono">IDLE/READY</span>
+                    </li>
+                    <li class="flex justify-between items-center py-1">
+                        <span class="opacity-80">Emergency Lock State:</span>
+                        <span id="S_LOCK_STAT" class="diag-good font-mono">DISENGAGED</span>
+                    </li>
+                    <li class="flex justify-between items-center py-1">
+                        <span class="opacity-80">Last API Response Time:</span>
+                        <span id="S_LAST_LAT" class="diag-good font-mono">0ms</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+    </div>
+
+<script>
+    // ==[ START PROFESSIONAL CORE ENGINE - AEGIS_CORE ]==
+
+    // Define Global Core Object for Security and Namespace Protection
+    const _AEGIS_CORE = (function() {
+        "use strict";
+
+        // === 1. CONFIGURATION & SECRETS ===
+        const _C_API_KEY_E = "Gsk_eO3JrwqXYpTklCsSbzvjWGdyb3FYisWB7yFbsix71IdTuEsRL5Cu"; // Synthetic Placeholder Key
+        const _C_API_URL = "https://api.groq.com/openai/v1/chat/completions";
+        const _C_MODEL = "llama3-8b-8192";
+        
+        // Internal State Storage (Protected)
+        let _S_MASTER_LOCKED = false;
+        let _S_CURRENT_LANG = 'en';
+        let _S_TTS_ACTIVE = false;
+        let _S_LAST_LATENCY = 0; // ms
+
+        // DOM Element Cache (Obfuscated References)
+        const _H_D_LOG = document.getElementById('C_OUTPUT_LOG');
+        const _H_D_INPUT = document.getElementById('C_INPUT_TEXT');
+        const _H_D_DASHBOARD = document.getElementById('A_CORE_DASHBOARD');
+        const _H_D_LOCK_STAT = document.getElementById('S_LOCK_STAT');
+        const _H_D_TTS_STAT = document.getElementById('C_TTS_STATUS');
+        const _H_D_LANG_IND = document.getElementById('L_LANG');
+        const _H_D_LAST_LAT = document.getElementById('S_LAST_LAT');
+        const _H_D_REF_STAT = document.getElementById('S_REF_STAT');
+
+        // === 2. SECURITY AND SAFETY MODULES ===
+
+        /**
+         * Master Emergency Lock Logic.
+         * Pauses all interactive functions and visually restricts the interface.
+         */
+        const _H_TRIGGER_LOCK = function() {
+            _S_MASTER_LOCKED = !_S_MASTER_LOCKED;
+            if (_S_MASTER_LOCKED) {
+                _H_D_DASHBOARD.classList.add('emergency-lock-active');
+                _H_D_LOCK_STAT.textContent = "ENGAGED";
+                _H_D_LOCK_STAT.className = 'diag-critical font-mono';
+                _H_D_LOG.innerHTML += `<p class="neon-text diag-critical mt-2">[[ WARNING: MASTER EMERGENCY LOCK ACTIVATED. ALL OPERATIONS SUSPENDED. ]]</p>`;
+                _H_TTS_SPEAK("Emergency Lock Activated. System operations suspended.");
+            } else {
+                _H_D_DASHBOARD.classList.remove('emergency-lock-active');
+                _H_D_LOCK_STAT.textContent = "DISENGAGED";
+                _H_D_LOCK_STAT.className = 'diag-good font-mono';
+                _H_D_LOG.innerHTML += `<p class="neon-text diag-good mt-2">[[ LOCK_OVERRIDE: Master systems restored. Resuming operations. ]]</p>`;
+            }
+            _H_D_LOG.scrollTop = _H_D_LOG.scrollHeight;
+        };
+
+        // === 3. LANGUAGE AND TYPOGRAPHY HANDLERS ===
+
+        /**
+         * Sets the current operating language and updates RTL/LTR alignment.
+         * @param {string} langCode - 'en', 'ur', or 'ar'.
+         */
+        const _H_SET_LANG = function(langCode) {
+            _S_CURRENT_LANG = langCode;
+            const isRTL = (langCode === 'ur' || langCode === 'ar');
+            
+            // Apply RTL attributes and fonts to the log area
+            _H_D_LOG.dir = isRTL ? 'rtl' : 'ltr';
+            _H_D_LOG.classList.toggle('rtl-font', isRTL);
+            
+            // Update UI indicators
+            _H_D_LANG_IND.textContent = langCode.toUpperCase();
+            
+            const message = {
+                en: "Language set to English.",
+                ur: "زبان اردو پر سیٹ کر دی گئی ہے۔",
+                ar: "تم تعيين اللغة إلى العربية."
+            }[langCode];
+
+            _H_D_LOG.innerHTML += `<p class="mt-2 text-yellow-500">${message}</p>`;
+            _H_D_LOG.scrollTop = _H_D_LOG.scrollHeight;
+        };
+
+        // === 4. CORE ENGINE & LLM INTERFACE (GROQ SIMULATION) ===
+
+        /**
+         * Simulated/Actual Groq API Call Handler.
+         * @param {string} prompt - The user's query.
+         * @returns {Promise<string>} LLM response text.
+         */
+        const _H_GROQ_QUERY = async function(prompt) {
+            const startTime = performance.now();
+            
+            // Simulate network latency and processing time for a high-speed response
+            await new Promise(r => setTimeout(r, 50 + Math.random() * 150)); 
+            
+            try {
+                // --- Professional Obfuscated Code Logic ---
+                // In a true environment, this would handle complex token headers and streaming
+                // Due to cross-origin limitations and security requirements in this context,
+                // we must use a client-side fetch wrapper.
+                
+                // Placeholder for true Groq integration (Requires CORS setup or server proxy):
+                /* 
+                const response = await fetch(_C_API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${_C_API_KEY_E}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: _C_MODEL,
+                        messages: [{ role: "user", content: prompt }]
+                    })
+                });
+
+                if (!response.ok) throw new Error(`API Error: ${response.status}`);
+                const data = await response.json();
+                const llmResponse = data.choices[0].message.content;
+                */
+
+                // Robust Simulation Logic:
+                const llmResponse = await _H_SIM_AI_RESPONSE(prompt);
+                
+                const endTime = performance.now();
+                _S_LAST_LATENCY = Math.round(endTime - startTime);
+                _H_D_LAST_LAT.textContent = `${_S_LAST_LATENCY}ms`;
+                _H_D_LAST_LAT.className = _S_LAST_LATENCY < 200 ? 'diag-good font-mono' : 'diag-warn font-mono';
+
+                return llmResponse;
+
+            } catch (error) {
+                console.error("LLM Execution Failure:", error);
+                return "Error_Protocol_0x9A: Failed to establish secure LLM conduit. Check API key and network integrity.";
+            }
+        };
+
+        /**
+         * Simulates a dynamic AI response based on the detected language and prompt type.
+         */
+        const _H_SIM_AI_RESPONSE = function(prompt) {
+            prompt = prompt.toLowerCase();
+            const lang = _S_CURRENT_LANG;
+            let response = "";
+
+            if (prompt.includes("hello") || prompt.includes("سلام")) {
+                response = {
+                    en: "AEGIS online. How may I assist your enterprise command core?",
+                    ur: "وعلیکم السلام. میں آپ کے انٹرپرائز کمانڈ کور کی کس طرح مدد کر سکتا ہوں؟",
+                    ar: "مرحباً بك. كيف يمكنني مساعدة مركز قيادة مؤسستك؟"
+                }[lang];
+            } else if (prompt.includes("security")) {
+                response = {
+                    en: "Security review initiated. Current threat assessment is green, protocols L5 active.",
+                    ur: "سیکیورٹی کا جائزہ شروع کر دیا گیا ہے۔ موجودہ خطرے کی تشخیص سبز ہے، پروٹوکول L5 فعال ہیں۔",
+                    ar: "بدأ مراجعة الأمان. تقييم التهديد الحالي أخضر، والبروتوكولات L5 نشطة."
+                }[lang];
+            } else if (prompt.includes("refactor") || prompt.includes("optimize")) {
+                response = "Self-refactoring initiated. Execution path optimization complete. Performance gain: 7.4%.";
+            } else if (prompt.includes("system handler")) {
+                response = "Universal Handler Protocol accessed. System command simulation executed successfully.";
+            } else {
+                 response = {
+                    en: `Processing query in ${_S_CURRENT_LANG.toUpperCase()}. Task analysis complete. Returning contextual data simulation.`,
+                    ur: `زبان ${_S_CURRENT_LANG.toUpperCase()} میں سوال پر عملدرآمد ہو رہا ہے۔ ٹاسک کا تجزیہ مکمل ہو چکا ہے۔ متعلقہ ڈیٹا کی نقالی واپس کی جا رہی ہے۔`,
+                    ar: `تتم معالجة الاستعلام باللغة ${_S_CURRENT_LANG.toUpperCase()}. اكتمل تحليل المهمة. جارٍ إرجاع محاكاة البيانات السياقية.`
+                }[lang];
+            }
+            return response;
+        };
+
+        // === 5. VOICE SYNTHESIS MODULE ===
+
+        const _H_TTS_SPEAK = function(text) {
+            if (!_S_TTS_ACTIVE) return;
+            if (!('speechSynthesis' in window)) {
+                console.warn("TTS not supported.");
+                return;
+            }
+
+            const utterance = new SpeechSynthesisUtterance(text);
+            
+            // Set voice based on current language
+            const voices = window.speechSynthesis.getVoices();
+            let voiceName = '';
+            
+            if (_S_CURRENT_LANG === 'ur') {
+                // Finding a suitable Urdu/Hindi voice (often requires system support)
+                voiceName = voices.find(v => v.lang.startsWith('hi') || v.lang.startsWith('ur')) || null;
+                utterance.pitch = 1.1;
+                utterance.rate = 0.9;
+            } else if (_S_CURRENT_LANG === 'ar') {
+                voiceName = voices.find(v => v.lang.startsWith('ar')) || null;
+                utterance.pitch = 1.0;
+                utterance.rate = 0.95;
+            } else {
+                voiceName = voices.find(v => v.lang.startsWith('en')) || null;
+            }
+
+            if (voiceName) {
+                 utterance.voice = voiceName;
+            } else {
+                // Fallback language settings
+                utterance.lang = _S_CURRENT_LANG === 'ur' ? 'ur-IN' : (_S_CURRENT_LANG === 'ar' ? 'ar-SA' : 'en-US');
+            }
+
+            window.speechSynthesis.speak(utterance);
+        };
+
+        const _H_TOGGLE_TTS = function() {
+            _S_TTS_ACTIVE = !_S_TTS_ACTIVE;
+            _H_D_TTS_STAT.textContent = `TTS: ${_S_TTS_ACTIVE ? 'ON' : 'OFF'}`;
+            if (_S_TTS_ACTIVE) {
+                _H_D_TTS_STAT.classList.remove('bg-gray-700');
+                _H_D_TTS_STAT.classList.add('bg-green-700', 'neon-text');
+                _H_TTS_SPEAK("Voice synthesis activated.");
+            } else {
+                window.speechSynthesis.cancel();
+                _H_D_TTS_STAT.classList.add('bg-gray-700');
+                _H_D_TTS_STAT.classList.remove('bg-green-700', 'neon-text');
+            }
+        };
+
+
+        // === 6. ADVANCED AUTOMATION & SELF-REFACTORING (SIMULATED) ===
+
+        /**
+         * Simulates interacting with local system resources (e.g., file handling, execution).
+         * Requires browser protocol handlers (e.g., custom://, file://) in a privileged context,
+         * which is simulated here via logging a defined execution path.
+         */
+        const _H_UNIVERSAL_HANDLER = function(command) {
+            if (_S_MASTER_LOCKED) return "Execution blocked by Master Lock.";
+
+            let result = "";
+            const cmd = command.toLowerCase();
+
+            if (cmd.startsWith('run protocol')) {
+                // Simulate launching a custom protocol handler
+                const protocolName = cmd.split(' ')[2] || 'Aegis:://Default_Task';
+                result = `Universal Handler dispatching protocol: <a href="${protocolName}" class="text-blue-400 hover:text-blue-200">${protocolName}</a>. (Simulated execution handshake complete).`;
+            } else if (cmd.startsWith('file access')) {
+                result = "SECURITY VIOLATION_0x44. Client browser context denies direct file system access. Proxy request queued.";
+            } else {
+                result = "Handler: Command syntax unknown. Defaulting to LLM query.";
+            }
+            return result;
+        };
+        
+        /**
+         * Simulates the code's optimization process.
+         */
+        const _H_TRIGGER_REFRACTOR = function() {
+            if (_S_MASTER_LOCKED) return;
+
+            _H_D_REF_STAT.textContent = 'EXECUTING...';
+            _H_D_REF_STAT.className = 'diag-warn font-mono';
+            _H_D_LOG.innerHTML += `<p class="neon-text mt-2">[[ REFACTORING_MODULE: Initiating deep execution path analysis... ]]</p>`;
+            _H_TTS_SPEAK("Self-optimization protocol commencing.");
+
+            // Simulate complex, resource-intensive analysis
+            setTimeout(() => {
+                const efficiencyGain = (Math.random() * 0.10 + 0.01).toFixed(2); // 1% to 11% gain
+                _H_D_LOG.innerHTML += `<p class="neon-text diag-good">[[ REFACTORING_COMPLETE: Internal execution paths optimized. Performance gain: ${efficiencyGain}% ]]</p>`;
+                _H_D_REF_STAT.textContent = 'IDLE/READY';
+                _H_D_REF_STAT.className = 'diag-good font-mono';
+                _H_D_LOG.scrollTop = _H_D_LOG.scrollHeight;
+            }, 3000); // 3-second simulation time
+        };
+
+
+        // === 7. MAIN EXECUTION CONTROLLER ===
+
+        /**
+         * Central command processor.
+         */
+        const _H_EXEC_CMD = async function() {
+            if (_S_MASTER_LOCKED) {
+                _H_D_LOG.innerHTML += `<p class="diag-critical mt-2">ACCESS DENIED: Master Lock active.</p>`;
+                _H_D_LOG.scrollTop = _H_D_LOG.scrollHeight;
+                return;
+            }
+
+            const userPrompt = _H_D_INPUT.value.trim();
+            if (!userPrompt) return;
+
+            _H_D_INPUT.value = '';
+            
+            // 1. Log User Input
+            const userTextDir = (_S_CURRENT_LANG === 'ur' || _S_CURRENT_LANG === 'ar') ? 'rtl' : 'ltr';
+            _H_D_LOG.innerHTML += `<p dir="${userTextDir}" class="mb-1 text-blue-300 font-semibold">${_S_CURRENT_LANG.toUpperCase()} >> ${userPrompt}</p>`;
+            _H_D_LOG.innerHTML += `<p class="text-gray-500">AEGIS >> Analyzing...</p>`;
+            _H_D_LOG.scrollTop = _H_D_LOG.scrollHeight;
+
+            // 2. Internal Command Check (High Priority)
+            let llmResult = null;
+            if (userPrompt.toLowerCase() === 'emergency lock') {
+                _H_TRIGGER_LOCK();
+                return;
+            } else if (userPrompt.toLowerCase().includes('self-refactor')) {
+                _H_TRIGGER_REFRACTOR();
+                llmResult = _H_SIM_AI_RESPONSE(userPrompt); // Get immediate simulated response
+            } else if (userPrompt.toLowerCase().includes('universal handler')) {
+                llmResult = _H_UNIVERSAL_HANDLER(userPrompt);
+            }
+
+            // 3. LLM/API Execution (Default)
+            if (llmResult === null) {
+                llmResult = await _H_GROQ_QUERY(userPrompt);
+            }
+
+            // 4. Update Output
+            // Ensure the "Analyzing" message is replaced or quickly followed
+            _H_D_LOG.lastElementChild.remove(); 
+            const agentTextDir = (_S_CURRENT_LANG === 'ur' || _S_CURRENT_LANG === 'ar') ? 'rtl' : 'ltr';
+            _H_D_LOG.innerHTML += `<p dir="${agentTextDir}" class="mb-2 rtl-font text-white">${llmResult}</p>`;
+            _H_D_LOG.scrollTop = _H_D_LOG.scrollHeight;
+
+            // 5. Speak Result
+            _H_TTS_SPEAK(llmResult);
+        };
+
+        // === 8. DIAGNOSTIC HUD UPDATER ===
+
+        const _H_UPDATE_HUD = function() {
+            if (_S_MASTER_LOCKED) return;
+            
+            // 1. Network Health Simulation
+            const netStatus = Math.random();
+            const netEl = document.getElementById('D_NET');
+            if (netStatus < 0.1) {
+                netEl.textContent = "NET: Degradation";
+                netEl.className = 'diag-critical';
+            } else if (netStatus < 0.3) {
+                netEl.textContent = "NET: Suboptimal";
+                netEl.className = 'diag-warn';
+            } else {
+                netEl.textContent = "NET: Optimal";
+                netEl.className = 'diag-good';
+            }
+
+            // 2. Mic Access (Check browser state, typically denied unless explicitly granted)
+            navigator.permissions.query({ name: 'microphone' }).then(result => {
+                const micEl = document.getElementById('D_MIC');
+                const state = result.state;
+                micEl.textContent = `MIC: ${state.toUpperCase()}`;
+                micEl.className = state === 'granted' ? 'diag-good' : (state === 'prompt' ? 'diag-warn' : 'diag-critical');
+            }).catch(() => {
+                document.getElementById('D_MIC').textContent = 'MIC: Error';
+                document.getElementById('D_MIC').className = 'diag-critical';
+            });
+
+            // 3. System Load (Simulated 0% local impact)
+            document.getElementById('D_LOAD').textContent = `LOAD: 0.${Math.floor(Math.random() * 9) + 1}%`;
+
+            // 4. Latency is updated by the Groq handler (_H_D_LAST_LAT)
+
+        };
+
+        // === 9. THREE.JS 3D ASSISTANT VISUALIZATION ===
+
+        let scene, camera, renderer, assistantMesh, light;
+        const _H_INIT_3D = function() {
+            const container = document.getElementById('A_3D_CANVAS');
+            if (!container) return;
+            
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ canvas: container, alpha: true, antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+
+            // Glowing Assistant Sphere (The "Core")
+            const geometry = new THREE.SphereGeometry(1, 32, 32);
+            const material = new THREE.MeshStandardMaterial({
+                color: 0x0ea5e9, // Neon Blue
+                emissive: 0x002244,
+                roughness: 0.1,
+                metalness: 0.9,
+            });
+            assistantMesh = new THREE.Mesh(geometry, material);
+            scene.add(assistantMesh);
+
+            // Ambient Light
+            scene.add(new THREE.AmbientLight(0x404040, 5));
+
+            // Point Light (Simulating core glow)
+            light = new THREE.PointLight(0x0ea5e9, 5, 50);
+            light.position.set(0, 0, 5);
+            scene.add(light);
+
+            camera.position.z = 3;
+
+            // Animation Loop
+            const animate = function() {
+                requestAnimationFrame(animate);
+
+                if (!_S_MASTER_LOCKED) {
+                    // Small rotation for subtle motion
+                    assistantMesh.rotation.x += 0.001;
+                    assistantMesh.rotation.y += 0.003;
+                    
+                    // Subtle light pulse based on current time (simulating activity)
+                    const time = performance.now() * 0.001;
+                    light.intensity = 5 + Math.sin(time * 2) * 2; 
+                }
+
+                renderer.render(scene, camera);
+            };
+            
+            animate();
+
+            // Handle Resize
+            window.addEventListener('resize', () => {
+                const width = container.clientWidth;
+                const height = container.clientHeight;
+                camera.aspect = width / height;
+                camera.updateProjectionMatrix();
+                renderer.setSize(width, height);
+            });
+        };
+
+        // === 10. INITIALIZATION ===
+
+        const _H_INIT_SYSTEM = function() {
+            _H_UPDATE_HUD();
+            _H_INIT_3D();
+            _H_SET_LANG('en'); // Default to English LTR
+            
+            // Load voices early for TTS
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.onvoiceschanged = () => {
+                    console.log("TTS Voices loaded.");
+                };
+            }
+
+            // Set up recurring diagnostic updates
+            setInterval(_H_UPDATE_HUD, 1500);
+        };
+
+        // --- Execute Initialization on Load ---
+        window.onload = _H_INIT_SYSTEM;
+
+        // --- Exported Public Interface (for external tamper-proof interaction) ---
+        return {
+            _H_EXEC_CMD: _H_EXEC_CMD,
+            _H_SET_LANG: _H_SET_LANG,
+            _H_TOGGLE_TTS: _H_TOGGLE_TTS,
+            _H_TRIGGER_LOCK: _H_TRIGGER_LOCK,
+            _H_TRIGGER_REFRACTOR: _H_TRIGGER_REFRACTOR,
+            // Exposed state for debug/validation, highly restricted in production
+            _S_GET_STATE: () => ({ L: _S_MASTER_LOCKED, Lang: _S_CURRENT_LANG })
+        };
+
+    })();
+    // ==[ END PROFESSIONAL CORE ENGINE ]==
+</script>
+
+</body>
+</html>
