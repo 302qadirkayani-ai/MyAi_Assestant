@@ -304,6 +304,7 @@
          * @returns {Promise<string>} LLM response text.
          */
         const _H_GROQ_QUERY = async function(prompt) {
+            let llmResponse = "";
             const startTime = performance.now();
             
             // Simulate network latency and processing time for a high-speed response
@@ -675,6 +676,7 @@
 </body>
 
 </html>
+
 
 
 
