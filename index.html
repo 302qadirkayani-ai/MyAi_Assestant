@@ -333,7 +333,7 @@
                 const llmResponse = data.choices[0].message.content;
 
                 // Robust Simulation Logic:
-                const llmResponse = await _H_SIM_AI_RESPONSE(prompt);
+                llmResponse = await _H_SIM_AI_RESPONSE(prompt);
                 
                 const endTime = performance.now();
                 _S_LAST_LATENCY = Math.round(endTime - startTime);
@@ -675,5 +675,6 @@
 </body>
 
 </html>
+
 
 
