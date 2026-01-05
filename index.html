@@ -330,7 +330,7 @@
 
                 if (!response.ok) throw new Error(`API Error: ${response.status}`);
                 const data = await response.json();
-                const llmResponse = data.choices[0].message.content;
+                //llmResponse = data.choices[0].message.content;
 
                 // Robust Simulation Logic:
                 llmResponse = await _H_SIM_AI_RESPONSE(prompt);
@@ -675,6 +675,7 @@
 </body>
 
 </html>
+
 
 
 
