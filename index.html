@@ -240,10 +240,16 @@ const AEGIS = (function() {
             ws.onmessage = (event) => {
                 try {
                     const data = JSON.parse(event.data);
+                    console.log('📨 Received from bridge:', data.type, data);
 
                     if (data.type === 'ai_response') {
-                        log(`AEGIS: ${data.message}`, 'success');
-                        speak(data.message);
+                        if (data.success) {
+                            log(`AEGIS: ${data.message}`, 'success');
+                            speak(data.message);
+                        } else {
+                            log(`❌ AI Error: ${data.message}`, 'error');
+                            console.error('AI Error details:', data.error);
+                        }
                     } else if (data.type === 'python_response') {
                         if (data.data.success) {
                             const msg = data.data.message || JSON.stringify(data.data.data);
@@ -254,9 +260,13 @@ const AEGIS = (function() {
                     } else if (data.type === 'connection') {
                         elements.statusPython.textContent = 'PYTHON: ONLINE';
                         elements.statusPython.className = 'diag-good';
+                        log(`✅ ${data.message}`, 'success');
+                    } else if (data.type === 'error') {
+                        log(`❌ Bridge error: ${data.message}`, 'error');
                     }
                 } catch (e) {
-                    console.error('Parse error:', e);
+                    console.error('❌ Parse error:', e);
+                    log('❌ Failed to parse bridge response', 'error');
                 }
             };
 
@@ -279,9 +289,12 @@ const AEGIS = (function() {
 
     function sendToBridge(type, data) {
         if (ws && ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ type, ...data }));
+            const payload = { type, ...data };
+            console.log('📤 Sending to bridge:', payload);
+            ws.send(JSON.stringify(payload));
         } else {
             log('❌ Bridge not connected', 'error');
+            console.error('WebSocket not ready. State:', ws ? ws.readyState : 'null');
         }
     }
 
@@ -291,12 +304,14 @@ const AEGIS = (function() {
 
         elements.input.value = '';
         log(`USER: ${input}`, 'system');
+        console.log('🎯 Executing command:', input);
 
         const lower = input.toLowerCase();
 
         // Plugin commands
         if (lower.startsWith('plugin ')) {
             const pluginName = lower.replace('plugin ', '').trim();
+            console.log('🔌 Plugin command:', pluginName);
             sendToBridge('python_command', {
                 command: {
                     action: 'plugin',
@@ -307,6 +322,7 @@ const AEGIS = (function() {
         // System commands
         else if (lower.startsWith('open ')) {
             const app = lower.replace('open ', '').trim();
+            console.log('📂 Open command:', app);
             sendToBridge('python_command', {
                 command: {
                     action: 'open_app',
@@ -315,15 +331,24 @@ const AEGIS = (function() {
             });
         }
         else if (lower === 'system info') {
+            console.log('ℹ️ System info command');
             sendToBridge('python_command', {
                 command: { action: 'system_info', params: {} }
             });
         }
         else if (lower === 'list plugins') {
+            console.log('📦 List plugins command');
             listPlugins();
         }
-        // AI query
+        else if (lower === 'reload plugins') {
+            console.log('🔄 Reload plugins command');
+            reloadPlugins();
+        }
+        // AI query - THIS IS THE CRITICAL FIX
         else {
+            console.log('🤖 AI query:', input);
+            log('🤖 Asking AEGIS AI...', 'system');
+            
             sendToBridge('ai_query', {
                 message: input,
                 language: currentLang
@@ -374,8 +399,11 @@ const AEGIS = (function() {
             recognition.onresult = (event) => {
                 const transcript = event.results[0][0].transcript;
                 elements.input.value = transcript;
-                log(`Heard: "${transcript}"`, 'system');
-                executeCommand();
+                log(`🎤 Heard: "${transcript}"`, 'system');
+                console.log('Voice recognized:', transcript);
+                
+                // Execute the command immediately
+                setTimeout(() => executeCommand(), 100);
             };
 
             recognition.onend = () => {
