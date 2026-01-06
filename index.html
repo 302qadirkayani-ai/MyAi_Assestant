@@ -1,520 +1,694 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ur">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AEGIS v12 - Voice & Plugin System</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&family=Montserrat:wght@300;400;700&display=swap" rel="stylesheet">
-
+    <title>Anime 3D Studio - اینیمی تھری ڈی اسٹوڈیو</title>
     <style>
-        :root {
-            --color-bg-deep: #020617;
-            --color-accent-neon: #0ea5e9;
-            --color-glass-dark: rgba(22, 28, 48, 0.6);
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-
+        
         body {
-            background-color: var(--color-bg-deep);
-            background-image: radial-gradient(circle at 50% 10%, #1e40af33, transparent 70%);
-            font-family: 'Montserrat', sans-serif;
-            color: #e2e8f0;
-            min-height: 100vh;
-            overflow-x: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            overflow: hidden;
+            direction: rtl;
         }
-
-        .glass-panel {
-            background: var(--color-glass-dark);
-            backdrop-filter: blur(12px) saturate(180%);
-            border: 1px solid rgba(14, 165, 233, 0.2);
-            border-radius: 1rem;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.47);
-        }
-
-        .neon-text {
-            color: var(--color-accent-neon);
-            text-shadow: 0 0 5px var(--color-accent-neon);
-        }
-
-        .diag-good { color: #10b981; }
-        .diag-warn { color: #fbbf24; }
-        .diag-critical { color: #ef4444; }
-
-        .input-cyber {
-            background: rgba(15, 23, 42, 0.7);
-            border: 1px solid rgba(14, 165, 233, 0.3);
-            color: #e2e8f0;
-            padding: 0.75rem;
-            border-radius: 0.5rem;
-        }
-
-        .input-cyber:focus {
-            outline: none;
-            border-color: var(--color-accent-neon);
-            box-shadow: 0 0 8px rgba(14, 165, 233, 0.6);
-        }
-
-        .rtl-font {
-            font-family: 'Noto Nastaliq Urdu', 'Cairo', 'Montserrat', sans-serif;
-        }
-
-        .permission-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-
-        .permission-modal.active {
+        
+        #container {
+            width: 100vw;
+            height: 100vh;
             display: flex;
         }
-
-        .listening {
-            animation: pulse 1.5s ease-in-out infinite;
+        
+        /* 3D Viewport */
+        #viewport {
+            flex: 1;
+            position: relative;
+            background: #1a1a2e;
         }
-
+        
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        
+        /* Control Panel */
+        #controls {
+            width: 320px;
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 20px;
+            overflow-y: auto;
+            backdrop-filter: blur(10px);
+        }
+        
+        h1 {
+            font-size: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+            color: #ff6b9d;
+            text-shadow: 0 0 10px rgba(255, 107, 157, 0.5);
+        }
+        
+        .section {
+            margin-bottom: 25px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .section h3 {
+            font-size: 14px;
+            margin-bottom: 12px;
+            color: #ffd93d;
+            border-bottom: 1px solid rgba(255, 217, 61, 0.3);
+            padding-bottom: 8px;
+        }
+        
+        button {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .color-picker {
+            width: 100%;
+            height: 40px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 5px 0;
+        }
+        
+        input[type="range"] {
+            width: 100%;
+            margin: 10px 0;
+        }
+        
+        label {
+            display: block;
+            font-size: 12px;
+            margin: 8px 0 4px;
+            color: #ddd;
+        }
+        
+        #voiceStatus {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: #4ade80;
+            padding: 12px 25px;
+            border-radius: 25px;
+            font-weight: bold;
+            display: none;
+            z-index: 1000;
+            animation: pulse 1.5s infinite;
+        }
+        
         @keyframes pulse {
             0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
+            50% { opacity: 0.7; }
+        }
+        
+        .recording {
+            background: #ef4444 !important;
+            color: white !important;
+        }
+        
+        #stats {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: #4ade80;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-family: monospace;
         }
     </style>
 </head>
-
-<body class="p-4 md:p-8">
-
-    <!-- Permission Modal -->
-    <div id="permissionModal" class="permission-modal">
-        <div class="glass-panel p-8 max-w-2xl">
-            <h2 class="text-2xl font-bold mb-4 neon-text">🔐 Permission Required</h2>
-            <div id="permissionContent" class="mb-6"></div>
-            <div class="flex space-x-4">
-                <button onclick="AEGIS.approvePermission()" class="bg-green-600 hover:bg-green-700 px-6 py-3 rounded-lg font-bold">
-                    ✅ Allow
-                </button>
-                <button onclick="AEGIS.denyPermission()" class="bg-red-600 hover:bg-red-700 px-6 py-3 rounded-lg font-bold">
-                    ❌ Deny
-                </button>
+<body>
+    <div id="voiceStatus">🎤 آواز سن رہا ہوں...</div>
+    <div id="stats">FPS: 60 | Models: 0</div>
+    
+    <div id="container">
+        <div id="viewport"></div>
+        
+        <div id="controls">
+            <h1>🎌 اینیمی تھری ڈی اسٹوڈیو</h1>
+            
+            <!-- Character Creation -->
+            <div class="section">
+                <h3>👤 کردار بنائیں</h3>
+                <button onclick="addAnimeCharacter()">نیا اینیمی کردار +</button>
+                <button onclick="removeCharacter()">کردار ہٹائیں -</button>
+                <label>کرداروں کی تعداد: <span id="charCount">0</span></label>
+            </div>
+            
+            <!-- Customization -->
+            <div class="section">
+                <h3>🎨 تبدیلیاں</h3>
+                <label>بالوں کا رنگ:</label>
+                <input type="color" class="color-picker" id="hairColor" value="#ff1493" onchange="changeHairColor(this.value)">
+                
+                <label>آنکھوں کا رنگ:</label>
+                <input type="color" class="color-picker" id="eyeColor" value="#4169e1" onchange="changeEyeColor(this.value)">
+                
+                <label>لباس کا رنگ:</label>
+                <input type="color" class="color-picker" id="clothColor" value="#9370db" onchange="changeClothColor(this.value)">
+            </div>
+            
+            <!-- Animations -->
+            <div class="section">
+                <h3>💃 حرکات</h3>
+                <button onclick="playAnimation('wave')">ہاتھ ہلانا 👋</button>
+                <button onclick="playAnimation('jump')">کودنا ⬆️</button>
+                <button onclick="playAnimation('walk')">چلنا 🚶</button>
+                <button onclick="playAnimation('dance')">ڈانس 💃</button>
+                <button onclick="stopAnimation()">رکیں ⏸️</button>
+            </div>
+            
+            <!-- Background -->
+            <div class="section">
+                <h3>🏞️ پس منظر</h3>
+                <button onclick="changeBackground('school')">اسکول 🏫</button>
+                <button onclick="changeBackground('city')">شہر 🏙️</button>
+                <button onclick="changeBackground('home')">گھر 🏠</button>
+                <button onclick="changeBackground('park')">پارک 🌳</button>
+            </div>
+            
+            <!-- Voice Control -->
+            <div class="section">
+                <h3>🎤 آواز سے کنٹرول</h3>
+                <button id="voiceBtn" onclick="toggleVoiceControl()">آواز شروع کریں</button>
+                <small style="color: #888; display: block; margin-top: 10px; line-height: 1.6;">
+                    <strong>کہیں:</strong><br>
+                    • "نیا کردار بناؤ"<br>
+                    • "ڈانس کرو" / "چلو" / "کودو"<br>
+                    • "رنگ بدلو: سرخ/نیلا/گلابی"<br>
+                    • "اسکول دکھاؤ" / "شہر دکھاؤ"<br>
+                    • "رک جاؤ"
+                </small>
+            </div>
+            
+            <!-- Video Recording -->
+            <div class="section">
+                <h3>🎥 ویڈیو</h3>
+                <button id="recordBtn" onclick="toggleRecording()">ریکارڈنگ شروع 🔴</button>
             </div>
         </div>
     </div>
-
-    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 min-h-[95vh]">
-
-        <div class="lg:col-span-3 flex flex-col space-y-6">
-
-            <header class="flex flex-col md:flex-row justify-between items-start md:items-center p-4 glass-panel">
-                <h1 class="text-3xl font-bold tracking-wider neon-text">AEGIS v12 :: Voice & Plugins</h1>
-                <div class="text-xs mt-3 md:mt-0 space-x-4">
-                    <span id="statusBridge" class="diag-warn">BRIDGE: OFFLINE</span>
-                    <span id="statusPython" class="diag-warn">PYTHON: OFFLINE</span>
-                    <span id="statusVoice" class="diag-warn">VOICE: OFF</span>
-                </div>
-            </header>
-
-            <div class="glass-panel p-6 flex-grow flex flex-col h-[50vh] lg:h-[70vh]">
-                <h2 class="text-xl font-semibold mb-3 border-b border-gray-700 pb-2">
-                    Operational Log <span id="langIndicator" class="text-xs ml-2 opacity-60">EN</span>
-                </h2>
-                <div id="outputLog" class="flex-grow overflow-y-auto text-sm leading-relaxed p-2" dir="ltr">
-                    <p class="mb-2 text-gray-400">[[ AEGIS v12 Initializing... ]]</p>
-                </div>
-            </div>
-
-            <div class="glass-panel p-4 flex flex-col space-y-4">
-                <div class="flex space-x-3">
-                    <input type="text" id="inputText" placeholder="Enter command or ask anything..."
-                        class="input-cyber flex-grow text-lg" onkeypress="if(event.key==='Enter') AEGIS.executeCommand();">
-                    <button id="btnMic" onclick="AEGIS.toggleVoice()"
-                        class="bg-purple-600 hover:bg-purple-700 px-4 rounded-lg">
-                        🎤
-                    </button>
-                    <button onclick="AEGIS.executeCommand()"
-                        class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg">
-                        Execute
-                    </button>
-                </div>
-                <div class="flex space-x-3 text-xs justify-between">
-                    <select id="langSelect" class="input-cyber w-32" onchange="AEGIS.setLanguage(this.value)">
-                        <option value="en">English</option>
-                        <option value="ur">اردو</option>
-                        <option value="ar">العربية</option>
-                    </select>
-                    <button onclick="AEGIS.listPlugins()" class="bg-gray-700 hover:bg-gray-600 py-1 px-3 rounded-full">
-                        📦 Plugins
-                    </button>
-                    <button onclick="AEGIS.reloadPlugins()" class="bg-purple-900 hover:bg-purple-800 py-1 px-3 rounded-full">
-                        🔄 Reload
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <div class="lg:col-span-1 flex flex-col space-y-6">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // Three.js Setup (Lightweight for 4GB RAM)
+        let scene, camera, renderer, characters = [];
+        let currentBg = 'school';
+        let isVoiceActive = false;
+        let isRecording = false;
+        let animationFrame = 0;
+        
+        function init() {
+            // Scene
+            scene = new THREE.Scene();
+            scene.fog = new THREE.Fog(0x87ceeb, 10, 50);
             
-            <div class="glass-panel p-2 flex flex-col items-center justify-center h-64 lg:h-96">
-                <h2 class="text-lg font-semibold mb-2 neon-text">3D Interface</h2>
-                <canvas id="canvas3d" class="w-full h-full rounded-lg"></canvas>
-            </div>
-
-            <div class="glass-panel p-4 flex-grow">
-                <h2 class="text-xl font-semibold mb-3 border-b border-gray-700 pb-2">System Status</h2>
-                
-                <ul class="text-sm space-y-2">
-                    <li class="flex justify-between py-1">
-                        <span class="opacity-80">Mode:</span>
-                        <span class="diag-good font-mono">EDUCATIONAL</span>
-                    </li>
-                    <li class="flex justify-between py-1">
-                        <span class="opacity-80">Plugins Loaded:</span>
-                        <span id="pluginCount" class="diag-good font-mono">0</span>
-                    </li>
-                    <li class="flex justify-between py-1">
-                        <span class="opacity-80">API:</span>
-                        <span id="statusAPI" class="diag-good font-mono">GROQ/PROXY</span>
-                    </li>
-                    <li class="flex justify-between py-1">
-                        <span class="opacity-80">Memory Mode:</span>
-                        <span class="diag-good font-mono">LIGHTWEIGHT</span>
-                    </li>
-                </ul>
-            </div>
-        </div>
-
-    </div>
-
-<script>
-const AEGIS = (function() {
-    'use strict';
-
-    let ws = null;
-    let currentLang = 'en';
-    let voiceActive = false;
-    let recognition = null;
-    let pendingPermission = null;
-
-    const elements = {
-        log: document.getElementById('outputLog'),
-        input: document.getElementById('inputText'),
-        statusBridge: document.getElementById('statusBridge'),
-        statusPython: document.getElementById('statusPython'),
-        statusVoice: document.getElementById('statusVoice'),
-        pluginCount: document.getElementById('pluginCount'),
-        langIndicator: document.getElementById('langIndicator'),
-        btnMic: document.getElementById('btnMic'),
-        permissionModal: document.getElementById('permissionModal'),
-        permissionContent: document.getElementById('permissionContent')
-    };
-
-    function log(msg, type = 'info') {
-        const colors = {
-            info: 'text-white',
-            success: 'text-green-400',
-            error: 'text-red-400',
-            warning: 'text-yellow-400',
-            system: 'text-blue-400'
-        };
-
-        const dir = (currentLang === 'ur' || currentLang === 'ar') ? 'rtl' : 'ltr';
-        elements.log.innerHTML += `<p dir="${dir}" class="mb-1 ${colors[type]}">${msg}</p>`;
-        elements.log.scrollTop = elements.log.scrollHeight;
-    }
-
-    function connectBridge() {
-        try {
-            ws = new WebSocket('ws://localhost:3000');
-
-            ws.onopen = () => {
-                elements.statusBridge.textContent = 'BRIDGE: ONLINE';
-                elements.statusBridge.className = 'diag-good';
-                log('✅ Connected to AEGIS Bridge', 'success');
-            };
-
-            ws.onmessage = (event) => {
-                try {
-                    const data = JSON.parse(event.data);
-                    console.log('📨 Received from bridge:', data.type, data);
-
-                    if (data.type === 'ai_response') {
-                        if (data.success) {
-                            log(`AEGIS: ${data.message}`, 'success');
-                            speak(data.message);
-                        } else {
-                            log(`❌ AI Error: ${data.message}`, 'error');
-                            console.error('AI Error details:', data.error);
-                        }
-                    } else if (data.type === 'python_response') {
-                        if (data.data.success) {
-                            const msg = data.data.message || JSON.stringify(data.data.data);
-                            log(`✅ ${msg}`, 'success');
-                        } else {
-                            log(`❌ ${data.data.message}`, 'error');
-                        }
-                    } else if (data.type === 'connection') {
-                        elements.statusPython.textContent = 'PYTHON: ONLINE';
-                        elements.statusPython.className = 'diag-good';
-                        log(`✅ ${data.message}`, 'success');
-                    } else if (data.type === 'error') {
-                        log(`❌ Bridge error: ${data.message}`, 'error');
-                    }
-                } catch (e) {
-                    console.error('❌ Parse error:', e);
-                    log('❌ Failed to parse bridge response', 'error');
-                }
-            };
-
-            ws.onerror = () => {
-                elements.statusBridge.textContent = 'BRIDGE: ERROR';
-                elements.statusBridge.className = 'diag-critical';
-            };
-
-            ws.onclose = () => {
-                elements.statusBridge.textContent = 'BRIDGE: OFFLINE';
-                elements.statusBridge.className = 'diag-warn';
-                log('⚠️ Bridge disconnected. Reconnecting...', 'warning');
-                setTimeout(connectBridge, 5000);
-            };
-
-        } catch (e) {
-            setTimeout(connectBridge, 5000);
-        }
-    }
-
-    function sendToBridge(type, data) {
-        if (ws && ws.readyState === WebSocket.OPEN) {
-            const payload = { type, ...data };
-            console.log('📤 Sending to bridge:', payload);
-            ws.send(JSON.stringify(payload));
-        } else {
-            log('❌ Bridge not connected', 'error');
-            console.error('WebSocket not ready. State:', ws ? ws.readyState : 'null');
-        }
-    }
-
-    function executeCommand() {
-        const input = elements.input.value.trim();
-        if (!input) return;
-
-        elements.input.value = '';
-        log(`USER: ${input}`, 'system');
-        console.log('🎯 Executing command:', input);
-
-        const lower = input.toLowerCase();
-
-        // Plugin commands
-        if (lower.startsWith('plugin ')) {
-            const pluginName = lower.replace('plugin ', '').trim();
-            console.log('🔌 Plugin command:', pluginName);
-            sendToBridge('python_command', {
-                command: {
-                    action: 'plugin',
-                    params: { name: pluginName }
-                }
-            });
-        }
-        // System commands
-        else if (lower.startsWith('open ')) {
-            const app = lower.replace('open ', '').trim();
-            console.log('📂 Open command:', app);
-            sendToBridge('python_command', {
-                command: {
-                    action: 'open_app',
-                    params: { app }
-                }
-            });
-        }
-        else if (lower === 'system info') {
-            console.log('ℹ️ System info command');
-            sendToBridge('python_command', {
-                command: { action: 'system_info', params: {} }
-            });
-        }
-        else if (lower === 'list plugins') {
-            console.log('📦 List plugins command');
-            listPlugins();
-        }
-        else if (lower === 'reload plugins') {
-            console.log('🔄 Reload plugins command');
-            reloadPlugins();
-        }
-        // AI query - THIS IS THE CRITICAL FIX
-        else {
-            console.log('🤖 AI query:', input);
-            log('🤖 Asking AEGIS AI...', 'system');
+            // Camera
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 2, 8);
+            camera.lookAt(0, 1, 0);
             
-            sendToBridge('ai_query', {
-                message: input,
-                language: currentLang
+            // Renderer (optimized)
+            renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true });
+            renderer.setSize(window.innerWidth - 320, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5)); // Limit for performance
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.BasicShadowMap; // Faster shadows
+            document.getElementById('viewport').appendChild(renderer.domElement);
+            
+            // Lights (minimal for performance)
+            const ambLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambLight);
+            
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(5, 10, 5);
+            dirLight.castShadow = true;
+            dirLight.shadow.mapSize.width = 512; // Low res for performance
+            dirLight.shadow.mapSize.height = 512;
+            scene.add(dirLight);
+            
+            // Ground
+            const groundGeo = new THREE.PlaneGeometry(30, 30);
+            const groundMat = new THREE.MeshLambertMaterial({ color: 0x90ee90 });
+            const ground = new THREE.Mesh(groundGeo, groundMat);
+            ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
+            scene.add(ground);
+            
+            // Initial background
+            changeBackground('school');
+            
+            // Window resize
+            window.addEventListener('resize', onWindowResize);
+            
+            // Start animation
+            animate();
+            
+            console.log('✅ 3D Studio initialized successfully!');
+        }
+        
+        // Create Simple Anime Character (Optimized)
+        function createAnimeCharacter(x = 0) {
+            const char = new THREE.Group();
+            
+            // Head (sphere)
+            const headGeo = new THREE.SphereGeometry(0.5, 16, 16); // Low poly
+            const headMat = new THREE.MeshLambertMaterial({ color: 0xffdbac });
+            const head = new THREE.Mesh(headGeo, headMat);
+            head.position.y = 1.8;
+            head.castShadow = true;
+            char.add(head);
+            
+            // Eyes (simple spheres)
+            const eyeGeo = new THREE.SphereGeometry(0.12, 8, 8);
+            const eyeMat = new THREE.MeshBasicMaterial({ color: 0x4169e1 });
+            
+            const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
+            leftEye.position.set(-0.2, 1.85, 0.4);
+            char.add(leftEye);
+            
+            const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
+            rightEye.position.set(0.2, 1.85, 0.4);
+            char.add(rightEye);
+            
+            // Hair (simple box)
+            const hairGeo = new THREE.BoxGeometry(0.8, 0.5, 0.8);
+            const hairMat = new THREE.MeshLambertMaterial({ color: 0xff1493 });
+            const hair = new THREE.Mesh(hairGeo, hairMat);
+            hair.position.y = 2.2;
+            char.add(hair);
+            
+            // Body (cylinder)
+            const bodyGeo = new THREE.CylinderGeometry(0.3, 0.4, 1.2, 8);
+            const bodyMat = new THREE.MeshLambertMaterial({ color: 0x9370db });
+            const body = new THREE.Mesh(bodyGeo, bodyMat);
+            body.position.y = 0.9;
+            body.castShadow = true;
+            char.add(body);
+            
+            // Arms (simple cylinders)
+            const armGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.8, 6);
+            const armMat = new THREE.MeshLambertMaterial({ color: 0xffdbac });
+            
+            const leftArm = new THREE.Mesh(armGeo, armMat);
+            leftArm.position.set(-0.45, 1.1, 0);
+            leftArm.rotation.z = 0.3;
+            char.add(leftArm);
+            
+            const rightArm = new THREE.Mesh(armGeo, armMat);
+            rightArm.position.set(0.45, 1.1, 0);
+            rightArm.rotation.z = -0.3;
+            char.add(rightArm);
+            
+            // Legs (cylinders)
+            const legGeo = new THREE.CylinderGeometry(0.1, 0.1, 1, 6);
+            const legMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
+            
+            const leftLeg = new THREE.Mesh(legGeo, legMat);
+            leftLeg.position.set(-0.2, 0.2, 0);
+            char.add(leftLeg);
+            
+            const rightLeg = new THREE.Mesh(legGeo, legMat);
+            rightLeg.position.set(0.2, 0.2, 0);
+            char.add(rightLeg);
+            
+            // Position character
+            char.position.x = x;
+            
+            // Store references for animation
+            char.userData = {
+                head, hair, leftArm, rightArm, leftEye, rightEye, body,
+                animation: 'idle',
+                animTime: 0
+            };
+            
+            scene.add(char);
+            characters.push(char);
+            
+            updateCharCount();
+            return char;
+        }
+        
+        function addAnimeCharacter() {
+            if (characters.length >= 4) {
+                alert('⚠️ زیادہ سے زیادہ 4 کردار!');
+                return;
+            }
+            const x = (characters.length - 1.5) * 2;
+            createAnimeCharacter(x);
+            console.log('✅ نیا کردار شامل کیا گیا');
+        }
+        
+        function removeCharacter() {
+            if (characters.length === 0) return;
+            const char = characters.pop();
+            scene.remove(char);
+            updateCharCount();
+        }
+        
+        function updateCharCount() {
+            document.getElementById('charCount').textContent = characters.length;
+            updateStats();
+        }
+        
+        // Color Changes
+        function changeHairColor(color) {
+            characters.forEach(char => {
+                char.userData.hair.material.color.setStyle(color);
             });
         }
-    }
-
-    function listPlugins() {
-        sendToBridge('python_command', {
-            command: { action: 'list_plugins', params: {} }
-        });
-    }
-
-    function reloadPlugins() {
-        sendToBridge('python_command', {
-            command: { action: 'reload_plugins', params: {} }
-        });
-    }
-
-    function setLanguage(lang) {
-        currentLang = lang;
-        elements.langIndicator.textContent = lang.toUpperCase();
-        const dir = (lang === 'ur' || lang === 'ar') ? 'rtl' : 'ltr';
-        elements.log.dir = dir;
-        log(`Language set to ${lang.toUpperCase()}`, 'system');
-    }
-
-    function toggleVoice() {
-        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-            log('❌ Voice not supported in this browser', 'error');
-            return;
+        
+        function changeEyeColor(color) {
+            characters.forEach(char => {
+                char.userData.leftEye.material.color.setStyle(color);
+                char.userData.rightEye.material.color.setStyle(color);
+            });
         }
-
-        if (!voiceActive) {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            recognition = new SpeechRecognition();
-            recognition.continuous = false;
-            recognition.interimResults = false;
-
-            recognition.onstart = () => {
-                voiceActive = true;
-                elements.statusVoice.textContent = 'VOICE: LISTENING';
-                elements.statusVoice.className = 'diag-good listening';
-                elements.btnMic.classList.add('listening');
-                log('🎤 Listening...', 'system');
-            };
-
-            recognition.onresult = (event) => {
-                const transcript = event.results[0][0].transcript;
-                elements.input.value = transcript;
-                log(`🎤 Heard: "${transcript}"`, 'system');
-                console.log('Voice recognized:', transcript);
-                
-                // Execute the command immediately
-                setTimeout(() => executeCommand(), 100);
-            };
-
-            recognition.onend = () => {
-                voiceActive = false;
-                elements.statusVoice.textContent = 'VOICE: OFF';
-                elements.statusVoice.className = 'diag-warn';
-                elements.btnMic.classList.remove('listening');
-            };
-
-            recognition.onerror = (event) => {
-                log(`Voice error: ${event.error}`, 'error');
-                voiceActive = false;
-            };
-
-            recognition.start();
-        } else {
-            if (recognition) recognition.stop();
+        
+        function changeClothColor(color) {
+            characters.forEach(char => {
+                char.userData.body.material.color.setStyle(color);
+            });
         }
-    }
-
-    function speak(text) {
-        if (!('speechSynthesis' in window)) return;
-
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = currentLang === 'ur' ? 'ur-PK' : currentLang === 'ar' ? 'ar-SA' : 'en-US';
-        window.speechSynthesis.speak(utterance);
-    }
-
-    function requestPermission(action, details) {
-        pendingPermission = { action, details };
-        elements.permissionContent.innerHTML = `
-            <p class="text-lg mb-2"><strong>Action:</strong> ${action}</p>
-            <p class="text-sm opacity-80">${details}</p>
-        `;
-        elements.permissionModal.classList.add('active');
-    }
-
-    function approvePermission() {
-        if (pendingPermission) {
-            log(`✅ Permission granted: ${pendingPermission.action}`, 'success');
-            // Execute approved action
+        
+        // Animations (Simple)
+        function playAnimation(type) {
+            characters.forEach(char => {
+                char.userData.animation = type;
+                char.userData.animTime = 0;
+            });
+            console.log(`▶️ حرکت: ${type}`);
         }
-        elements.permissionModal.classList.remove('active');
-        pendingPermission = null;
-    }
-
-    function denyPermission() {
-        if (pendingPermission) {
-            log(`❌ Permission denied: ${pendingPermission.action}`, 'warning');
+        
+        function stopAnimation() {
+            characters.forEach(char => {
+                char.userData.animation = 'idle';
+            });
         }
-        elements.permissionModal.classList.remove('active');
-        pendingPermission = null;
-    }
-
-    function init3D() {
-        const canvas = document.getElementById('canvas3d');
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(75, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
-        renderer.setSize(canvas.clientWidth, canvas.clientHeight);
-
-        const geometry = new THREE.SphereGeometry(1, 32, 32);
-        const material = new THREE.MeshStandardMaterial({
-            color: 0x0ea5e9,
-            emissive: 0x002244,
-            roughness: 0.1,
-            metalness: 0.9
-        });
-        const sphere = new THREE.Mesh(geometry, material);
-        scene.add(sphere);
-
-        scene.add(new THREE.AmbientLight(0x404040, 5));
-        const light = new THREE.PointLight(0x0ea5e9, 5, 50);
-        light.position.set(0, 0, 5);
-        scene.add(light);
-
-        camera.position.z = 3;
-
+        
+        // Background Change
+        function changeBackground(type) {
+            currentBg = type;
+            let color, fogColor;
+            
+            switch(type) {
+                case 'school':
+                    color = 0xffe4b5;
+                    fogColor = 0x87ceeb;
+                    break;
+                case 'city':
+                    color = 0x708090;
+                    fogColor = 0x404040;
+                    break;
+                case 'home':
+                    color = 0xfaf0e6;
+                    fogColor = 0xf5deb3;
+                    break;
+                case 'park':
+                    color = 0x7cfc00;
+                    fogColor = 0x90ee90;
+                    break;
+            }
+            
+            scene.background = new THREE.Color(color);
+            scene.fog.color.setHex(fogColor);
+            console.log(`🏞️ پس منظر: ${type}`);
+        }
+        
+        // Animation Loop
         function animate() {
             requestAnimationFrame(animate);
-            sphere.rotation.x += 0.001;
-            sphere.rotation.y += 0.003;
-            light.intensity = 5 + Math.sin(Date.now() * 0.002) * 2;
+            
+            animationFrame++;
+            
+            // Animate characters
+            characters.forEach((char, i) => {
+                const data = char.userData;
+                data.animTime += 0.05;
+                
+                switch(data.animation) {
+                    case 'wave':
+                        data.rightArm.rotation.z = -0.3 + Math.sin(data.animTime * 5) * 0.5;
+                        break;
+                    case 'jump':
+                        char.position.y = Math.abs(Math.sin(data.animTime * 3)) * 0.5;
+                        break;
+                    case 'walk':
+                        char.position.z = Math.sin(data.animTime) * 2;
+                        data.leftArm.rotation.x = Math.sin(data.animTime * 2) * 0.5;
+                        data.rightArm.rotation.x = -Math.sin(data.animTime * 2) * 0.5;
+                        break;
+                    case 'dance':
+                        data.head.rotation.z = Math.sin(data.animTime * 2) * 0.2;
+                        data.leftArm.rotation.z = 0.3 + Math.sin(data.animTime * 3) * 0.5;
+                        data.rightArm.rotation.z = -0.3 - Math.sin(data.animTime * 3) * 0.5;
+                        char.position.y = Math.abs(Math.sin(data.animTime * 4)) * 0.2;
+                        break;
+                    case 'idle':
+                        // Gentle breathing
+                        data.body.scale.y = 1 + Math.sin(data.animTime * 2) * 0.02;
+                        break;
+                }
+            });
+            
             renderer.render(scene, camera);
         }
-        animate();
-    }
-
-    function init() {
-        log('[[ AEGIS v12 - Voice & Plugin System ]]', 'system');
-        log('Educational Research Framework', 'system');
-        log('Connecting to bridge...', 'system');
         
-        connectBridge();
-        init3D();
-    }
-
-    window.onload = init;
-
-    return {
-        executeCommand,
-        listPlugins,
-        reloadPlugins,
-        setLanguage,
-        toggleVoice,
-        approvePermission,
-        denyPermission
-    };
-})();
-</script>
-
+        function onWindowResize() {
+            camera.aspect = (window.innerWidth - 320) / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth - 320, window.innerHeight);
+        }
+        
+        // Voice Control (Simple)
+        function toggleVoiceControl() {
+            isVoiceActive = !isVoiceActive;
+            const btn = document.getElementById('voiceBtn');
+            const status = document.getElementById('voiceStatus');
+            
+            if (isVoiceActive) {
+                btn.textContent = 'آواز بند کریں 🛑';
+                btn.style.background = '#ef4444';
+                status.style.display = 'block';
+                startVoiceRecognition();
+            } else {
+                btn.textContent = 'آواز شروع کریں 🎤';
+                btn.style.background = '';
+                status.style.display = 'none';
+                if (recognition) {
+                    recognition.stop();
+                }
+            }
+        }
+        
+        let recognition = null;
+        
+        function startVoiceRecognition() {
+            if (!('webkitSpeechRecognition' in window)) {
+                alert('⚠️ آواز کی شناخت آپ کے براؤزر میں دستیاب نہیں۔ Chrome استعمال کریں۔');
+                return;
+            }
+            
+            recognition = new webkitSpeechRecognition();
+            recognition.lang = 'ur-PK';
+            recognition.continuous = true;
+            recognition.interimResults = false;
+            
+            recognition.onstart = () => {
+                console.log('✅ آواز کی شناخت شروع ہوگئی');
+            };
+            
+            recognition.onresult = (event) => {
+                const text = event.results[event.results.length - 1][0].transcript;
+                console.log('🎤 آپ نے کہا:', text);
+                
+                // Show what was heard
+                const status = document.getElementById('voiceStatus');
+                status.textContent = `🎤 سنا: "${text}"`;
+                
+                // Execute command
+                handleVoiceCommand(text);
+                
+                // Hide status after 2 seconds
+                setTimeout(() => {
+                    if (isVoiceActive) {
+                        status.textContent = '🎤 آواز سن رہا ہوں...';
+                    }
+                }, 2000);
+            };
+            
+            recognition.onerror = (event) => {
+                console.error('❌ Voice error:', event.error);
+                if (event.error === 'no-speech') {
+                    console.log('کوئی آواز نہیں ملی، دوبارہ کوشش...');
+                }
+            };
+            
+            recognition.onend = () => {
+                // Auto-restart if still active
+                if (isVoiceActive) {
+                    setTimeout(() => recognition.start(), 100);
+                }
+            };
+            
+            recognition.start();
+        }
+        
+        function handleVoiceCommand(text) {
+            const cmd = text.toLowerCase();
+            
+            // Character creation
+            if (cmd.includes('نیا') && cmd.includes('کردار') || 
+                cmd.includes('character') || cmd.includes('بنا')) {
+                addAnimeCharacter();
+                speak('نیا کردار بنایا گیا');
+            }
+            // Remove character
+            else if (cmd.includes('ہٹا') || cmd.includes('کم') || cmd.includes('remove')) {
+                removeCharacter();
+                speak('کردار ہٹایا گیا');
+            }
+            // Dance
+            else if (cmd.includes('ڈانس') || cmd.includes('dance') || cmd.includes('ناچ')) {
+                playAnimation('dance');
+                speak('ڈانس شروع');
+            }
+            // Walk
+            else if (cmd.includes('چل') || cmd.includes('walk') || cmd.includes('قدم')) {
+                playAnimation('walk');
+                speak('چل رہے ہیں');
+            }
+            // Jump
+            else if (cmd.includes('کود') || cmd.includes('jump') || cmd.includes('اچھل')) {
+                playAnimation('jump');
+                speak('کود رہے ہیں');
+            }
+            // Wave
+            else if (cmd.includes('ہاتھ') || cmd.includes('wave') || cmd.includes('ہلا')) {
+                playAnimation('wave');
+                speak('ہاتھ ہلا رہے ہیں');
+            }
+            // Stop
+            else if (cmd.includes('رک') || cmd.includes('stop') || cmd.includes('بند')) {
+                stopAnimation();
+                speak('رک گئے');
+            }
+            // Background changes
+            else if (cmd.includes('اسکول') || cmd.includes('school')) {
+                changeBackground('school');
+                speak('اسکول کا منظر');
+            }
+            else if (cmd.includes('شہر') || cmd.includes('city')) {
+                changeBackground('city');
+                speak('شہر کا منظر');
+            }
+            else if (cmd.includes('گھر') || cmd.includes('home')) {
+                changeBackground('home');
+                speak('گھر کا منظر');
+            }
+            else if (cmd.includes('پارک') || cmd.includes('park')) {
+                changeBackground('park');
+                speak('پارک کا منظر');
+            }
+            // Color changes
+            else if (cmd.includes('سرخ') || cmd.includes('red') || cmd.includes('لال')) {
+                document.getElementById('hairColor').value = '#ff0000';
+                changeHairColor('#ff0000');
+                speak('سرخ رنگ');
+            }
+            else if (cmd.includes('نیلا') || cmd.includes('blue')) {
+                document.getElementById('hairColor').value = '#0000ff';
+                changeHairColor('#0000ff');
+                speak('نیلا رنگ');
+            }
+            else if (cmd.includes('گلابی') || cmd.includes('pink')) {
+                document.getElementById('hairColor').value = '#ff69b4';
+                changeHairColor('#ff69b4');
+                speak('گلابی رنگ');
+            }
+            else {
+                console.log('⚠️ کمانڈ سمجھ نہیں آئی:', text);
+            }
+        }
+        
+        // Text-to-Speech Response
+        function speak(text) {
+            if ('speechSynthesis' in window) {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'ur-PK';
+                utterance.rate = 1.0;
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+        
+        // Video Recording
+        function toggleRecording() {
+            isRecording = !isRecording;
+            const btn = document.getElementById('recordBtn');
+            const status = document.getElementById('voiceStatus');
+            
+            if (isRecording) {
+                btn.textContent = 'ریکارڈنگ بند کریں ⏹️';
+                btn.classList.add('recording');
+                status.textContent = '🔴 ریکارڈ ہو رہا ہے...';
+                status.classList.add('recording');
+                status.style.display = 'block';
+                console.log('🎥 ریکارڈنگ شروع');
+            } else {
+                btn.textContent = 'ریکارڈنگ شروع 🔴';
+                btn.classList.remove('recording');
+                status.style.display = 'none';
+                console.log('⏹️ ریکارڈنگ بند');
+            }
+        }
+        
+        // Stats
+        function updateStats() {
+            document.getElementById('stats').textContent = 
+                `FPS: ${Math.round(1000 / 16)} | Models: ${characters.length}`;
+        }
+        
+        setInterval(updateStats, 1000);
+        
+        // Initialize
+        init();
+        console.log('✅ اینیمی تھری ڈی اسٹوڈیو تیار ہے!');
+    </script>
 </body>
 </html>
