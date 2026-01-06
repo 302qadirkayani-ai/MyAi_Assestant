@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Anime 3D Studio - اینیمی تھری ڈی اسٹوڈیو</title>
+    <title>Professional Anime 3D Studio</title>
     <style>
         * {
             margin: 0;
@@ -13,9 +13,10 @@
         
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
             overflow: hidden;
             direction: rtl;
+            color: white;
         }
         
         #container {
@@ -24,11 +25,10 @@
             display: flex;
         }
         
-        /* 3D Viewport */
         #viewport {
             flex: 1;
             position: relative;
-            background: #1a1a2e;
+            background: #0f0f1e;
         }
         
         canvas {
@@ -37,82 +37,110 @@
             height: 100%;
         }
         
-        /* Control Panel */
         #controls {
-            width: 320px;
-            background: rgba(0, 0, 0, 0.85);
+            width: 380px;
+            background: rgba(15, 15, 30, 0.95);
             color: white;
             padding: 20px;
             overflow-y: auto;
-            backdrop-filter: blur(10px);
+            backdrop-filter: blur(15px);
+            border-left: 2px solid rgba(255, 107, 157, 0.3);
         }
         
         h1 {
-            font-size: 20px;
-            margin-bottom: 20px;
+            font-size: 22px;
+            margin-bottom: 25px;
             text-align: center;
             color: #ff6b9d;
-            text-shadow: 0 0 10px rgba(255, 107, 157, 0.5);
+            text-shadow: 0 0 20px rgba(255, 107, 157, 0.6);
+            padding-bottom: 15px;
+            border-bottom: 2px solid rgba(255, 107, 157, 0.3);
         }
         
         .section {
-            margin-bottom: 25px;
-            padding: 15px;
+            margin-bottom: 20px;
+            padding: 18px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: all 0.3s;
+        }
+        
+        .section:hover {
             background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 107, 157, 0.3);
         }
         
         .section h3 {
-            font-size: 14px;
-            margin-bottom: 12px;
+            font-size: 15px;
+            margin-bottom: 15px;
             color: #ffd93d;
-            border-bottom: 1px solid rgba(255, 217, 61, 0.3);
-            padding-bottom: 8px;
+            border-bottom: 2px solid rgba(255, 217, 61, 0.3);
+            padding-bottom: 10px;
         }
         
         button {
             width: 100%;
-            padding: 10px;
-            margin: 5px 0;
+            padding: 12px;
+            margin: 6px 0;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border: none;
-            border-radius: 8px;
+            border-radius: 10px;
             cursor: pointer;
-            font-size: 13px;
+            font-size: 14px;
             font-weight: bold;
             transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
         }
         
         button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
         }
         
         button:active {
             transform: translateY(0);
         }
         
-        .color-picker {
-            width: 100%;
-            height: 40px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            margin: 5px 0;
+        .character-btn {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            margin: 4px 0;
+            padding: 10px;
+            font-size: 13px;
         }
         
-        input[type="range"] {
+        #scriptInput {
             width: 100%;
+            height: 120px;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 2px solid rgba(255, 107, 157, 0.3);
+            border-radius: 10px;
+            color: white;
+            font-size: 13px;
+            resize: vertical;
+            margin: 10px 0;
+            font-family: inherit;
+        }
+        
+        #scriptInput:focus {
+            outline: none;
+            border-color: #ff6b9d;
+            box-shadow: 0 0 15px rgba(255, 107, 157, 0.4);
+        }
+        
+        .camera-controls {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
             margin: 10px 0;
         }
         
-        label {
-            display: block;
+        .camera-btn {
+            padding: 8px;
             font-size: 12px;
-            margin: 8px 0 4px;
-            color: #ddd;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
         }
         
         #voiceStatus {
@@ -120,262 +148,382 @@
             top: 20px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.9);
             color: #4ade80;
-            padding: 12px 25px;
-            border-radius: 25px;
+            padding: 15px 30px;
+            border-radius: 30px;
             font-weight: bold;
             display: none;
             z-index: 1000;
-            animation: pulse 1.5s infinite;
+            animation: pulse 2s infinite;
+            border: 2px solid #4ade80;
         }
         
         @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
+            0%, 100% { opacity: 1; box-shadow: 0 0 20px rgba(74, 222, 128, 0.4); }
+            50% { opacity: 0.8; box-shadow: 0 0 30px rgba(74, 222, 128, 0.6); }
         }
         
         .recording {
-            background: #ef4444 !important;
+            background: rgba(239, 68, 68, 0.9) !important;
             color: white !important;
+            border-color: #ef4444 !important;
         }
         
         #stats {
             position: fixed;
-            bottom: 10px;
-            left: 10px;
-            background: rgba(0, 0, 0, 0.7);
+            bottom: 15px;
+            left: 15px;
+            background: rgba(0, 0, 0, 0.8);
             color: #4ade80;
-            padding: 8px 12px;
+            padding: 10px 15px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-family: 'Courier New', monospace;
+            border: 1px solid rgba(74, 222, 128, 0.3);
+        }
+        
+        label {
+            display: block;
+            font-size: 13px;
+            margin: 10px 0 6px;
+            color: #ddd;
+        }
+        
+        select {
+            width: 100%;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.4);
+            border: 2px solid rgba(255, 107, 157, 0.3);
             border-radius: 8px;
+            color: white;
+            font-size: 13px;
+            cursor: pointer;
+            margin: 5px 0;
+        }
+        
+        select:focus {
+            outline: none;
+            border-color: #ff6b9d;
+        }
+        
+        .info-text {
             font-size: 11px;
-            font-family: monospace;
+            color: #888;
+            line-height: 1.6;
+            margin-top: 8px;
+            padding: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 6px;
+        }
+        
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 107, 157, 0.5);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 107, 157, 0.7);
         }
     </style>
 </head>
 <body>
     <div id="voiceStatus">🎤 آواز سن رہا ہوں...</div>
-    <div id="stats">FPS: 60 | Models: 0</div>
+    <div id="stats">FPS: 60 | کردار: 0 | کیمرہ: فرنٹ</div>
     
     <div id="container">
         <div id="viewport"></div>
         
         <div id="controls">
-            <h1>🎌 اینیمی تھری ڈی اسٹوڈیو</h1>
+            <h1>🎌 پروفیشنل اینیمی تھری ڈی اسٹوڈیو</h1>
             
-            <!-- Character Creation -->
+            <!-- Characters -->
             <div class="section">
-                <h3>👤 کردار بنائیں</h3>
-                <button onclick="addAnimeCharacter()">نیا اینیمی کردار +</button>
-                <button onclick="removeCharacter()">کردار ہٹائیں -</button>
-                <label>کرداروں کی تعداد: <span id="charCount">0</span></label>
+                <h3>👥 کردار منتخب کریں</h3>
+                <button class="character-btn" onclick="addCharacter('girl')">👧 18 سالہ لڑکی شامل کریں</button>
+                <button class="character-btn" onclick="addCharacter('boy')">👦 18 سالہ لڑکا شامل کریں</button>
+                <button class="character-btn" onclick="addCharacter('mother')">👩 ماں (35 سال)</button>
+                <button class="character-btn" onclick="addCharacter('father')">👨 باپ (40 سال)</button>
+                <button onclick="removeLastCharacter()" style="background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);">کردار ہٹائیں</button>
+                <label>موجودہ کردار: <span id="charCount">0</span></label>
             </div>
             
-            <!-- Customization -->
+            <!-- AI Script Control -->
             <div class="section">
-                <h3>🎨 تبدیلیاں</h3>
-                <label>بالوں کا رنگ:</label>
-                <input type="color" class="color-picker" id="hairColor" value="#ff1493" onchange="changeHairColor(this.value)">
-                
-                <label>آنکھوں کا رنگ:</label>
-                <input type="color" class="color-picker" id="eyeColor" value="#4169e1" onchange="changeEyeColor(this.value)">
-                
-                <label>لباس کا رنگ:</label>
-                <input type="color" class="color-picker" id="clothColor" value="#9370db" onchange="changeClothColor(this.value)">
+                <h3>✨ AI اسکرپٹ کنٹرول (نیا!)</h3>
+                <textarea id="scriptInput" placeholder="یہاں اپنی اسکرپٹ لکھیں... مثال:
+• لڑکی پارک میں چل رہی ہے
+• لڑکا دوڑتا ہے اور ہاتھ ہلاتا ہے
+• باپ بیٹھ کر اخبار پڑھ رہا ہے
+• ماں کچن میں کھانا بنا رہی ہے"></textarea>
+                <button onclick="executeScript()" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">🎬 اسکرپٹ چلائیں</button>
+                <button onclick="stopAllActions()">⏹️ تمام حرکات روکیں</button>
+                <div class="info-text">
+                    💡 <strong>ٹپ:</strong> آپ کردار کی حرکات، مقام اور ایکشن کی تفصیل لکھیں۔ AI خودکار طریقے سے سین بنائے گا!
+                </div>
             </div>
             
-            <!-- Animations -->
+            <!-- Environment -->
             <div class="section">
-                <h3>💃 حرکات</h3>
-                <button onclick="playAnimation('wave')">ہاتھ ہلانا 👋</button>
-                <button onclick="playAnimation('jump')">کودنا ⬆️</button>
-                <button onclick="playAnimation('walk')">چلنا 🚶</button>
-                <button onclick="playAnimation('dance')">ڈانس 💃</button>
-                <button onclick="stopAnimation()">رکیں ⏸️</button>
+                <h3>🏞️ ماحول منتخب کریں</h3>
+                <button onclick="changeEnvironment('city')">🏙️ شہر (15 کلومیٹر)</button>
+                <button onclick="changeEnvironment('town')">🏘️ قصبہ/گاؤں</button>
+                <button onclick="changeEnvironment('park')">🌳 پارک</button>
+                <button onclick="changeEnvironment('forest')">🌲 جنگل</button>
+                <label>موجودہ ماحول: <span id="envName">شہر</span></label>
             </div>
             
-            <!-- Background -->
+            <!-- Camera Controls -->
             <div class="section">
-                <h3>🏞️ پس منظر</h3>
-                <button onclick="changeBackground('school')">اسکول 🏫</button>
-                <button onclick="changeBackground('city')">شہر 🏙️</button>
-                <button onclick="changeBackground('home')">گھر 🏠</button>
-                <button onclick="changeBackground('park')">پارک 🌳</button>
+                <h3>📹 کیمرہ کنٹرول</h3>
+                <div class="camera-controls">
+                    <button class="camera-btn" onclick="setCameraAngle('front')">فرنٹ</button>
+                    <button class="camera-btn" onclick="setCameraAngle('back')">بیک</button>
+                    <button class="camera-btn" onclick="setCameraAngle('side')">سائیڈ</button>
+                    <button class="camera-btn" onclick="setCameraAngle('top')">ٹاپ</button>
+                    <button class="camera-btn" onclick="setCameraAngle('aerial')">ہوائی نظارہ</button>
+                    <button class="camera-btn" onclick="setCameraAngle('closeup')">کلوز اپ</button>
+                </div>
+                <button onclick="toggleCameraRotation()">🔄 آٹو روٹیٹ: <span id="rotateStatus">آف</span></button>
             </div>
             
             <!-- Voice Control -->
             <div class="section">
                 <h3>🎤 آواز سے کنٹرول</h3>
-                <button id="voiceBtn" onclick="toggleVoiceControl()">آواز شروع کریں</button>
-                <small style="color: #888; display: block; margin-top: 10px; line-height: 1.6;">
-                    <strong>کہیں:</strong><br>
-                    • "نیا کردار بناؤ"<br>
-                    • "ڈانس کرو" / "چلو" / "کودو"<br>
-                    • "رنگ بدلو: سرخ/نیلا/گلابی"<br>
-                    • "اسکول دکھاؤ" / "شہر دکھاؤ"<br>
-                    • "رک جاؤ"
-                </small>
+                <label>کردار منتخب کریں:</label>
+                <select id="voiceCharSelect">
+                    <option value="all">تمام کردار</option>
+                    <option value="0">کردار 1</option>
+                    <option value="1">کردار 2</option>
+                    <option value="2">کردار 3</option>
+                    <option value="3">کردار 4</option>
+                </select>
+                <button id="voiceBtn" onclick="toggleVoiceControl()">🎙️ آواز ریکارڈنگ شروع کریں</button>
+                <div class="info-text">
+                    منتخب کردار آپ کی آواز دہرائے گا
+                </div>
             </div>
             
             <!-- Video Recording -->
             <div class="section">
-                <h3>🎥 ویڈیو</h3>
-                <button id="recordBtn" onclick="toggleRecording()">ریکارڈنگ شروع 🔴</button>
+                <h3>🎥 ویڈیو ریکارڈنگ</h3>
+                <button id="recordBtn" onclick="toggleRecording()">🔴 ریکارڈنگ شروع کریں</button>
+                <button onclick="takeScreenshot()">📸 سکرین شاٹ لیں</button>
             </div>
         </div>
     </div>
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
-        // Three.js Setup (Lightweight for 4GB RAM)
-        let scene, camera, renderer, characters = [];
-        let currentBg = 'school';
+        let scene, camera, renderer;
+        let characters = [];
+        let environment = 'city';
+        let cameraAngle = 'front';
         let isVoiceActive = false;
         let isRecording = false;
+        let autoRotate = false;
         let animationFrame = 0;
         
+        // Character templates
+        const characterTypes = {
+            girl: { color: 0xffb3d9, hairColor: 0xff1493, height: 1.65, age: 18 },
+            boy: { color: 0xadd8e6, hairColor: 0x654321, height: 1.75, age: 18 },
+            mother: { color: 0xffd1dc, hairColor: 0x8b4513, height: 1.60, age: 35 },
+            father: { color: 0xb0c4de, hairColor: 0x2f4f4f, height: 1.80, age: 40 }
+        };
+        
         function init() {
-            // Scene
             scene = new THREE.Scene();
-            scene.fog = new THREE.Fog(0x87ceeb, 10, 50);
+            scene.fog = new THREE.Fog(0x87ceeb, 20, 100);
             
-            // Camera
-            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 2, 8);
+            camera = new THREE.PerspectiveCamera(60, (window.innerWidth - 380) / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 3, 10);
             camera.lookAt(0, 1, 0);
             
-            // Renderer (optimized)
-            renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true });
-            renderer.setSize(window.innerWidth - 320, window.innerHeight);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5)); // Limit for performance
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth - 380, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             renderer.shadowMap.enabled = true;
-            renderer.shadowMap.type = THREE.BasicShadowMap; // Faster shadows
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             document.getElementById('viewport').appendChild(renderer.domElement);
             
-            // Lights (minimal for performance)
-            const ambLight = new THREE.AmbientLight(0xffffff, 0.6);
+            const ambLight = new THREE.AmbientLight(0xffffff, 0.7);
             scene.add(ambLight);
             
             const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-            dirLight.position.set(5, 10, 5);
+            dirLight.position.set(10, 15, 10);
             dirLight.castShadow = true;
-            dirLight.shadow.mapSize.width = 512; // Low res for performance
-            dirLight.shadow.mapSize.height = 512;
+            dirLight.shadow.mapSize.width = 1024;
+            dirLight.shadow.mapSize.height = 1024;
+            dirLight.shadow.camera.near = 0.5;
+            dirLight.shadow.camera.far = 50;
             scene.add(dirLight);
             
-            // Ground
-            const groundGeo = new THREE.PlaneGeometry(30, 30);
-            const groundMat = new THREE.MeshLambertMaterial({ color: 0x90ee90 });
+            const hemiLight = new THREE.HemisphereLight(0x87ceeb, 0x90ee90, 0.5);
+            scene.add(hemiLight);
+            
+            createGround();
+            changeEnvironment('city');
+            
+            window.addEventListener('resize', onWindowResize);
+            animate();
+            
+            console.log('✅ Professional Anime Studio Initialized!');
+        }
+        
+        function createGround() {
+            const groundGeo = new THREE.PlaneGeometry(200, 200, 50, 50);
+            const groundMat = new THREE.MeshStandardMaterial({ 
+                color: 0x7cb342,
+                roughness: 0.8,
+                metalness: 0.2
+            });
             const ground = new THREE.Mesh(groundGeo, groundMat);
             ground.rotation.x = -Math.PI / 2;
             ground.receiveShadow = true;
             scene.add(ground);
-            
-            // Initial background
-            changeBackground('school');
-            
-            // Window resize
-            window.addEventListener('resize', onWindowResize);
-            
-            // Start animation
-            animate();
-            
-            console.log('✅ 3D Studio initialized successfully!');
         }
         
-        // Create Simple Anime Character (Optimized)
-        function createAnimeCharacter(x = 0) {
+        function createAnimeCharacter(type, position = { x: 0, z: 0 }) {
+            const template = characterTypes[type];
             const char = new THREE.Group();
             
-            // Head (sphere)
-            const headGeo = new THREE.SphereGeometry(0.5, 16, 16); // Low poly
-            const headMat = new THREE.MeshLambertMaterial({ color: 0xffdbac });
-            const head = new THREE.Mesh(headGeo, headMat);
-            head.position.y = 1.8;
+            const scale = template.height / 1.70;
+            
+            // Head (anime style - larger)
+            const headGeo = new THREE.SphereGeometry(0.35 * scale, 32, 32);
+            const skinMat = new THREE.MeshStandardMaterial({ 
+                color: 0xffdbac,
+                roughness: 0.4,
+                metalness: 0.1
+            });
+            const head = new THREE.Mesh(headGeo, skinMat);
+            head.position.y = 1.65 * scale;
+            head.scale.set(1, 1.1, 0.95);
             head.castShadow = true;
             char.add(head);
             
-            // Eyes (simple spheres)
-            const eyeGeo = new THREE.SphereGeometry(0.12, 8, 8);
-            const eyeMat = new THREE.MeshBasicMaterial({ color: 0x4169e1 });
+            // Large anime eyes
+            const eyeGeo = new THREE.SphereGeometry(0.08 * scale, 16, 16);
+            const eyeWhiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
             
-            const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
-            leftEye.position.set(-0.2, 1.85, 0.4);
+            const leftEye = new THREE.Mesh(eyeGeo, eyeWhiteMat);
+            leftEye.position.set(-0.15 * scale, 1.7 * scale, 0.3 * scale);
+            leftEye.scale.set(1.2, 1.5, 0.8);
             char.add(leftEye);
             
-            const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
-            rightEye.position.set(0.2, 1.85, 0.4);
+            const rightEye = new THREE.Mesh(eyeGeo, eyeWhiteMat);
+            rightEye.position.set(0.15 * scale, 1.7 * scale, 0.3 * scale);
+            rightEye.scale.set(1.2, 1.5, 0.8);
             char.add(rightEye);
             
-            // Hair (simple box)
-            const hairGeo = new THREE.BoxGeometry(0.8, 0.5, 0.8);
-            const hairMat = new THREE.MeshLambertMaterial({ color: 0xff1493 });
+            // Pupils
+            const pupilGeo = new THREE.SphereGeometry(0.04 * scale, 16, 16);
+            const pupilMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a });
+            
+            const leftPupil = new THREE.Mesh(pupilGeo, pupilMat);
+            leftPupil.position.set(-0.15 * scale, 1.7 * scale, 0.35 * scale);
+            char.add(leftPupil);
+            
+            const rightPupil = new THREE.Mesh(pupilGeo, pupilMat);
+            rightPupil.position.set(0.15 * scale, 1.7 * scale, 0.35 * scale);
+            char.add(rightPupil);
+            
+            // Anime hair (spiky/stylized)
+            const hairGeo = new THREE.SphereGeometry(0.4 * scale, 16, 16);
+            const hairMat = new THREE.MeshStandardMaterial({ 
+                color: template.hairColor,
+                roughness: 0.6
+            });
             const hair = new THREE.Mesh(hairGeo, hairMat);
-            hair.position.y = 2.2;
+            hair.position.y = 1.9 * scale;
+            hair.scale.set(1.1, 0.8, 1.1);
             char.add(hair);
             
-            // Body (cylinder)
-            const bodyGeo = new THREE.CylinderGeometry(0.3, 0.4, 1.2, 8);
-            const bodyMat = new THREE.MeshLambertMaterial({ color: 0x9370db });
-            const body = new THREE.Mesh(bodyGeo, bodyMat);
-            body.position.y = 0.9;
+            // Body (slim anime style)
+            const bodyGeo = new THREE.CylinderGeometry(0.25 * scale, 0.28 * scale, 1 * scale, 16);
+            const clothMat = new THREE.MeshStandardMaterial({ 
+                color: template.color,
+                roughness: 0.5
+            });
+            const body = new THREE.Mesh(bodyGeo, clothMat);
+            body.position.y = 1 * scale;
             body.castShadow = true;
             char.add(body);
             
-            // Arms (simple cylinders)
-            const armGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.8, 6);
-            const armMat = new THREE.MeshLambertMaterial({ color: 0xffdbac });
+            // Arms
+            const armGeo = new THREE.CylinderGeometry(0.06 * scale, 0.06 * scale, 0.7 * scale, 12);
             
-            const leftArm = new THREE.Mesh(armGeo, armMat);
-            leftArm.position.set(-0.45, 1.1, 0);
-            leftArm.rotation.z = 0.3;
+            const leftArm = new THREE.Mesh(armGeo, skinMat);
+            leftArm.position.set(-0.35 * scale, 1.2 * scale, 0);
+            leftArm.rotation.z = 0.2;
+            leftArm.castShadow = true;
             char.add(leftArm);
             
-            const rightArm = new THREE.Mesh(armGeo, armMat);
-            rightArm.position.set(0.45, 1.1, 0);
-            rightArm.rotation.z = -0.3;
+            const rightArm = new THREE.Mesh(armGeo, skinMat);
+            rightArm.position.set(0.35 * scale, 1.2 * scale, 0);
+            rightArm.rotation.z = -0.2;
+            rightArm.castShadow = true;
             char.add(rightArm);
             
-            // Legs (cylinders)
-            const legGeo = new THREE.CylinderGeometry(0.1, 0.1, 1, 6);
-            const legMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
+            // Legs
+            const legGeo = new THREE.CylinderGeometry(0.08 * scale, 0.07 * scale, 0.8 * scale, 12);
             
-            const leftLeg = new THREE.Mesh(legGeo, legMat);
-            leftLeg.position.set(-0.2, 0.2, 0);
+            const leftLeg = new THREE.Mesh(legGeo, clothMat);
+            leftLeg.position.set(-0.12 * scale, 0.4 * scale, 0);
+            leftLeg.castShadow = true;
             char.add(leftLeg);
             
-            const rightLeg = new THREE.Mesh(legGeo, legMat);
-            rightLeg.position.set(0.2, 0.2, 0);
+            const rightLeg = new THREE.Mesh(legGeo, clothMat);
+            rightLeg.position.set(0.12 * scale, 0.4 * scale, 0);
+            rightLeg.castShadow = true;
             char.add(rightLeg);
             
-            // Position character
-            char.position.x = x;
+            char.position.set(position.x, 0, position.z);
             
-            // Store references for animation
             char.userData = {
-                head, hair, leftArm, rightArm, leftEye, rightEye, body,
-                animation: 'idle',
-                animTime: 0
+                type, head, hair, leftArm, rightArm, leftLeg, rightLeg, body,
+                leftEye, rightEye, leftPupil, rightPupil,
+                action: 'idle',
+                actionTime: 0,
+                targetPos: { x: position.x, z: position.z },
+                speech: ''
             };
             
             scene.add(char);
             characters.push(char);
-            
             updateCharCount();
+            
             return char;
         }
         
-        function addAnimeCharacter() {
+        function addCharacter(type) {
             if (characters.length >= 4) {
                 alert('⚠️ زیادہ سے زیادہ 4 کردار!');
                 return;
             }
-            const x = (characters.length - 1.5) * 2;
-            createAnimeCharacter(x);
-            console.log('✅ نیا کردار شامل کیا گیا');
+            
+            const positions = [
+                { x: -3, z: 0 },
+                { x: -1, z: 0 },
+                { x: 1, z: 0 },
+                { x: 3, z: 0 }
+            ];
+            
+            const pos = positions[characters.length];
+            createAnimeCharacter(type, pos);
+            console.log(`✅ ${type} کردار شامل کیا گیا`);
         }
         
-        function removeCharacter() {
+        function removeLastCharacter() {
             if (characters.length === 0) return;
             const char = characters.pop();
             scene.remove(char);
@@ -387,308 +535,16 @@
             updateStats();
         }
         
-        // Color Changes
-        function changeHairColor(color) {
-            characters.forEach(char => {
-                char.userData.hair.material.color.setStyle(color);
-            });
-        }
-        
-        function changeEyeColor(color) {
-            characters.forEach(char => {
-                char.userData.leftEye.material.color.setStyle(color);
-                char.userData.rightEye.material.color.setStyle(color);
-            });
-        }
-        
-        function changeClothColor(color) {
-            characters.forEach(char => {
-                char.userData.body.material.color.setStyle(color);
-            });
-        }
-        
-        // Animations (Simple)
-        function playAnimation(type) {
-            characters.forEach(char => {
-                char.userData.animation = type;
-                char.userData.animTime = 0;
-            });
-            console.log(`▶️ حرکت: ${type}`);
-        }
-        
-        function stopAnimation() {
-            characters.forEach(char => {
-                char.userData.animation = 'idle';
-            });
-        }
-        
-        // Background Change
-        function changeBackground(type) {
-            currentBg = type;
-            let color, fogColor;
-            
-            switch(type) {
-                case 'school':
-                    color = 0xffe4b5;
-                    fogColor = 0x87ceeb;
-                    break;
-                case 'city':
-                    color = 0x708090;
-                    fogColor = 0x404040;
-                    break;
-                case 'home':
-                    color = 0xfaf0e6;
-                    fogColor = 0xf5deb3;
-                    break;
-                case 'park':
-                    color = 0x7cfc00;
-                    fogColor = 0x90ee90;
-                    break;
-            }
-            
-            scene.background = new THREE.Color(color);
-            scene.fog.color.setHex(fogColor);
-            console.log(`🏞️ پس منظر: ${type}`);
-        }
-        
-        // Animation Loop
-        function animate() {
-            requestAnimationFrame(animate);
-            
-            animationFrame++;
-            
-            // Animate characters
-            characters.forEach((char, i) => {
-                const data = char.userData;
-                data.animTime += 0.05;
-                
-                switch(data.animation) {
-                    case 'wave':
-                        data.rightArm.rotation.z = -0.3 + Math.sin(data.animTime * 5) * 0.5;
-                        break;
-                    case 'jump':
-                        char.position.y = Math.abs(Math.sin(data.animTime * 3)) * 0.5;
-                        break;
-                    case 'walk':
-                        char.position.z = Math.sin(data.animTime) * 2;
-                        data.leftArm.rotation.x = Math.sin(data.animTime * 2) * 0.5;
-                        data.rightArm.rotation.x = -Math.sin(data.animTime * 2) * 0.5;
-                        break;
-                    case 'dance':
-                        data.head.rotation.z = Math.sin(data.animTime * 2) * 0.2;
-                        data.leftArm.rotation.z = 0.3 + Math.sin(data.animTime * 3) * 0.5;
-                        data.rightArm.rotation.z = -0.3 - Math.sin(data.animTime * 3) * 0.5;
-                        char.position.y = Math.abs(Math.sin(data.animTime * 4)) * 0.2;
-                        break;
-                    case 'idle':
-                        // Gentle breathing
-                        data.body.scale.y = 1 + Math.sin(data.animTime * 2) * 0.02;
-                        break;
-                }
-            });
-            
-            renderer.render(scene, camera);
-        }
-        
-        function onWindowResize() {
-            camera.aspect = (window.innerWidth - 320) / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth - 320, window.innerHeight);
-        }
-        
-        // Voice Control (Simple)
-        function toggleVoiceControl() {
-            isVoiceActive = !isVoiceActive;
-            const btn = document.getElementById('voiceBtn');
-            const status = document.getElementById('voiceStatus');
-            
-            if (isVoiceActive) {
-                btn.textContent = 'آواز بند کریں 🛑';
-                btn.style.background = '#ef4444';
-                status.style.display = 'block';
-                startVoiceRecognition();
-            } else {
-                btn.textContent = 'آواز شروع کریں 🎤';
-                btn.style.background = '';
-                status.style.display = 'none';
-                if (recognition) {
-                    recognition.stop();
-                }
-            }
-        }
-        
-        let recognition = null;
-        
-        function startVoiceRecognition() {
-            if (!('webkitSpeechRecognition' in window)) {
-                alert('⚠️ آواز کی شناخت آپ کے براؤزر میں دستیاب نہیں۔ Chrome استعمال کریں۔');
+        function executeScript() {
+            const script = document.getElementById('scriptInput').value.trim();
+            if (!script) {
+                alert('⚠️ پہلے اسکرپٹ لکھیں!');
                 return;
             }
             
-            recognition = new webkitSpeechRecognition();
-            recognition.lang = 'ur-PK';
-            recognition.continuous = true;
-            recognition.interimResults = false;
+            console.log('🎬 اسکرپٹ چل رہی ہے:', script);
             
-            recognition.onstart = () => {
-                console.log('✅ آواز کی شناخت شروع ہوگئی');
-            };
+            const lines = script.split('\n').filter(l => l.trim());
             
-            recognition.onresult = (event) => {
-                const text = event.results[event.results.length - 1][0].transcript;
-                console.log('🎤 آپ نے کہا:', text);
-                
-                // Show what was heard
-                const status = document.getElementById('voiceStatus');
-                status.textContent = `🎤 سنا: "${text}"`;
-                
-                // Execute command
-                handleVoiceCommand(text);
-                
-                // Hide status after 2 seconds
-                setTimeout(() => {
-                    if (isVoiceActive) {
-                        status.textContent = '🎤 آواز سن رہا ہوں...';
-                    }
-                }, 2000);
-            };
-            
-            recognition.onerror = (event) => {
-                console.error('❌ Voice error:', event.error);
-                if (event.error === 'no-speech') {
-                    console.log('کوئی آواز نہیں ملی، دوبارہ کوشش...');
-                }
-            };
-            
-            recognition.onend = () => {
-                // Auto-restart if still active
-                if (isVoiceActive) {
-                    setTimeout(() => recognition.start(), 100);
-                }
-            };
-            
-            recognition.start();
-        }
-        
-        function handleVoiceCommand(text) {
-            const cmd = text.toLowerCase();
-            
-            // Character creation
-            if (cmd.includes('نیا') && cmd.includes('کردار') || 
-                cmd.includes('character') || cmd.includes('بنا')) {
-                addAnimeCharacter();
-                speak('نیا کردار بنایا گیا');
-            }
-            // Remove character
-            else if (cmd.includes('ہٹا') || cmd.includes('کم') || cmd.includes('remove')) {
-                removeCharacter();
-                speak('کردار ہٹایا گیا');
-            }
-            // Dance
-            else if (cmd.includes('ڈانس') || cmd.includes('dance') || cmd.includes('ناچ')) {
-                playAnimation('dance');
-                speak('ڈانس شروع');
-            }
-            // Walk
-            else if (cmd.includes('چل') || cmd.includes('walk') || cmd.includes('قدم')) {
-                playAnimation('walk');
-                speak('چل رہے ہیں');
-            }
-            // Jump
-            else if (cmd.includes('کود') || cmd.includes('jump') || cmd.includes('اچھل')) {
-                playAnimation('jump');
-                speak('کود رہے ہیں');
-            }
-            // Wave
-            else if (cmd.includes('ہاتھ') || cmd.includes('wave') || cmd.includes('ہلا')) {
-                playAnimation('wave');
-                speak('ہاتھ ہلا رہے ہیں');
-            }
-            // Stop
-            else if (cmd.includes('رک') || cmd.includes('stop') || cmd.includes('بند')) {
-                stopAnimation();
-                speak('رک گئے');
-            }
-            // Background changes
-            else if (cmd.includes('اسکول') || cmd.includes('school')) {
-                changeBackground('school');
-                speak('اسکول کا منظر');
-            }
-            else if (cmd.includes('شہر') || cmd.includes('city')) {
-                changeBackground('city');
-                speak('شہر کا منظر');
-            }
-            else if (cmd.includes('گھر') || cmd.includes('home')) {
-                changeBackground('home');
-                speak('گھر کا منظر');
-            }
-            else if (cmd.includes('پارک') || cmd.includes('park')) {
-                changeBackground('park');
-                speak('پارک کا منظر');
-            }
-            // Color changes
-            else if (cmd.includes('سرخ') || cmd.includes('red') || cmd.includes('لال')) {
-                document.getElementById('hairColor').value = '#ff0000';
-                changeHairColor('#ff0000');
-                speak('سرخ رنگ');
-            }
-            else if (cmd.includes('نیلا') || cmd.includes('blue')) {
-                document.getElementById('hairColor').value = '#0000ff';
-                changeHairColor('#0000ff');
-                speak('نیلا رنگ');
-            }
-            else if (cmd.includes('گلابی') || cmd.includes('pink')) {
-                document.getElementById('hairColor').value = '#ff69b4';
-                changeHairColor('#ff69b4');
-                speak('گلابی رنگ');
-            }
-            else {
-                console.log('⚠️ کمانڈ سمجھ نہیں آئی:', text);
-            }
-        }
-        
-        // Text-to-Speech Response
-        function speak(text) {
-            if ('speechSynthesis' in window) {
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'ur-PK';
-                utterance.rate = 1.0;
-                window.speechSynthesis.speak(utterance);
-            }
-        }
-        
-        // Video Recording
-        function toggleRecording() {
-            isRecording = !isRecording;
-            const btn = document.getElementById('recordBtn');
-            const status = document.getElementById('voiceStatus');
-            
-            if (isRecording) {
-                btn.textContent = 'ریکارڈنگ بند کریں ⏹️';
-                btn.classList.add('recording');
-                status.textContent = '🔴 ریکارڈ ہو رہا ہے...';
-                status.classList.add('recording');
-                status.style.display = 'block';
-                console.log('🎥 ریکارڈنگ شروع');
-            } else {
-                btn.textContent = 'ریکارڈنگ شروع 🔴';
-                btn.classList.remove('recording');
-                status.style.display = 'none';
-                console.log('⏹️ ریکارڈنگ بند');
-            }
-        }
-        
-        // Stats
-        function updateStats() {
-            document.getElementById('stats').textContent = 
-                `FPS: ${Math.round(1000 / 16)} | Models: ${characters.length}`;
-        }
-        
-        setInterval(updateStats, 1000);
-        
-        // Initialize
-        init();
-        console.log('✅ اینیمی تھری ڈی اسٹوڈیو تیار ہے!');
-    </script>
-</body>
-</html>
+            lines.forEach((line, index) => {
+                setTimeout(() =
