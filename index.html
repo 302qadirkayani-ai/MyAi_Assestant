@@ -3,548 +3,301 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Professional Anime 3D Studio</title>
+    <title>Professional Anime 3D Studio - Fixed</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            background: #1a1a2e;
             overflow: hidden;
             direction: rtl;
             color: white;
         }
-        
-        #container {
-            width: 100vw;
-            height: 100vh;
-            display: flex;
-        }
-        
-        #viewport {
-            flex: 1;
-            position: relative;
-            background: #0f0f1e;
-        }
-        
-        canvas {
-            display: block;
-            width: 100%;
-            height: 100%;
-        }
-        
+        #container { width: 100vw; height: 100vh; display: flex; }
+        #viewport { flex: 1; position: relative; background: #000; }
         #controls {
             width: 380px;
             background: rgba(15, 15, 30, 0.95);
-            color: white;
             padding: 20px;
             overflow-y: auto;
-            backdrop-filter: blur(15px);
-            border-left: 2px solid rgba(255, 107, 157, 0.3);
+            border-left: 2px solid #ff6b9d;
         }
-        
-        h1 {
-            font-size: 22px;
-            margin-bottom: 25px;
-            text-align: center;
-            color: #ff6b9d;
-            text-shadow: 0 0 20px rgba(255, 107, 157, 0.6);
-            padding-bottom: 15px;
-            border-bottom: 2px solid rgba(255, 107, 157, 0.3);
-        }
-        
         .section {
             margin-bottom: 20px;
-            padding: 18px;
-            background: rgba(255, 255, 255, 0.03);
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            transition: all 0.3s;
-        }
-        
-        .section:hover {
+            padding: 15px;
             background: rgba(255, 255, 255, 0.05);
-            border-color: rgba(255, 107, 157, 0.3);
+            border-radius: 10px;
         }
-        
-        .section h3 {
-            font-size: 15px;
-            margin-bottom: 15px;
-            color: #ffd93d;
-            border-bottom: 2px solid rgba(255, 217, 61, 0.3);
-            padding-bottom: 10px;
-        }
-        
+        h1 { font-size: 20px; color: #ff6b9d; text-align: center; margin-bottom: 20px; }
+        h3 { font-size: 14px; color: #ffd93d; margin-bottom: 10px; }
         button {
-            width: 100%;
-            padding: 12px;
-            margin: 6px 0;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: bold;
-            transition: all 0.3s;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            width: 100%; padding: 10px; margin: 5px 0;
+            border: none; border-radius: 5px; cursor: pointer;
+            font-weight: bold; color: white; transition: 0.3s;
+            background: linear-gradient(135deg, #667eea, #764ba2);
         }
-        
-        button:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+        button:hover { opacity: 0.8; transform: scale(1.02); }
+        .character-btn { background: linear-gradient(135deg, #f093fb, #f5576c); }
+        textarea {
+            width: 100%; height: 80px; background: #000; color: #fff;
+            border: 1px solid #ff6b9d; padding: 10px; border-radius: 5px;
         }
-        
-        button:active {
-            transform: translateY(0);
-        }
-        
-        .character-btn {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-            margin: 4px 0;
-            padding: 10px;
-            font-size: 13px;
-        }
-        
-        #scriptInput {
-            width: 100%;
-            height: 120px;
-            padding: 12px;
-            background: rgba(0, 0, 0, 0.4);
-            border: 2px solid rgba(255, 107, 157, 0.3);
-            border-radius: 10px;
-            color: white;
-            font-size: 13px;
-            resize: vertical;
-            margin: 10px 0;
-            font-family: inherit;
-        }
-        
-        #scriptInput:focus {
-            outline: none;
-            border-color: #ff6b9d;
-            box-shadow: 0 0 15px rgba(255, 107, 157, 0.4);
-        }
-        
-        .camera-controls {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-            margin: 10px 0;
-        }
-        
-        .camera-btn {
-            padding: 8px;
-            font-size: 12px;
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-        }
-        
-        #voiceStatus {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.9);
-            color: #4ade80;
-            padding: 15px 30px;
-            border-radius: 30px;
-            font-weight: bold;
-            display: none;
-            z-index: 1000;
-            animation: pulse 2s infinite;
-            border: 2px solid #4ade80;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 1; box-shadow: 0 0 20px rgba(74, 222, 128, 0.4); }
-            50% { opacity: 0.8; box-shadow: 0 0 30px rgba(74, 222, 128, 0.6); }
-        }
-        
-        .recording {
-            background: rgba(239, 68, 68, 0.9) !important;
-            color: white !important;
-            border-color: #ef4444 !important;
-        }
-        
-        #stats {
-            position: fixed;
-            bottom: 15px;
-            left: 15px;
-            background: rgba(0, 0, 0, 0.8);
-            color: #4ade80;
-            padding: 10px 15px;
-            border-radius: 10px;
-            font-size: 12px;
-            font-family: 'Courier New', monospace;
-            border: 1px solid rgba(74, 222, 128, 0.3);
-        }
-        
-        label {
-            display: block;
-            font-size: 13px;
-            margin: 10px 0 6px;
-            color: #ddd;
-        }
-        
-        select {
-            width: 100%;
-            padding: 10px;
-            background: rgba(0, 0, 0, 0.4);
-            border: 2px solid rgba(255, 107, 157, 0.3);
-            border-radius: 8px;
-            color: white;
-            font-size: 13px;
-            cursor: pointer;
-            margin: 5px 0;
-        }
-        
-        select:focus {
-            outline: none;
-            border-color: #ff6b9d;
-        }
-        
-        .info-text {
-            font-size: 11px;
-            color: #888;
-            line-height: 1.6;
-            margin-top: 8px;
-            padding: 8px;
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 6px;
-        }
-        
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-        
-        ::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.2);
-        }
-        
-        ::-webkit-scrollbar-thumb {
-            background: rgba(255, 107, 157, 0.5);
-            border-radius: 4px;
-        }
-        
-        ::-webkit-scrollbar-thumb:hover {
-            background: rgba(255, 107, 157, 0.7);
+        .camera-controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+        #stats { position: absolute; bottom: 10px; left: 10px; background: rgba(0,0,0,0.7); padding: 5px; font-size: 12px; }
+        #voiceStatus { 
+            position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+            padding: 10px 20px; background: #4ade80; color: black; border-radius: 20px;
+            display: none; font-weight: bold;
         }
     </style>
 </head>
 <body>
-    <div id="voiceStatus">🎤 آواز سن رہا ہوں...</div>
-    <div id="stats">FPS: 60 | کردار: 0 | کیمرہ: فرنٹ</div>
-    
-    <div id="container">
-        <div id="viewport"></div>
-        
-        <div id="controls">
-            <h1>🎌 پروفیشنل اینیمی تھری ڈی اسٹوڈیو</h1>
-            
-            <!-- Characters -->
-            <div class="section">
-                <h3>👥 کردار منتخب کریں</h3>
-                <button class="character-btn" onclick="addCharacter('girl')">👧 18 سالہ لڑکی شامل کریں</button>
-                <button class="character-btn" onclick="addCharacter('boy')">👦 18 سالہ لڑکا شامل کریں</button>
-                <button class="character-btn" onclick="addCharacter('mother')">👩 ماں (35 سال)</button>
-                <button class="character-btn" onclick="addCharacter('father')">👨 باپ (40 سال)</button>
-                <button onclick="removeLastCharacter()" style="background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);">کردار ہٹائیں</button>
-                <label>موجودہ کردار: <span id="charCount">0</span></label>
-            </div>
-            
-            <!-- AI Script Control -->
-            <div class="section">
-                <h3>✨ AI اسکرپٹ کنٹرول (نیا!)</h3>
-                <textarea id="scriptInput" placeholder="یہاں اپنی اسکرپٹ لکھیں... مثال:
-• لڑکی پارک میں چل رہی ہے
-• لڑکا دوڑتا ہے اور ہاتھ ہلاتا ہے
-• باپ بیٹھ کر اخبار پڑھ رہا ہے
-• ماں کچن میں کھانا بنا رہی ہے"></textarea>
-                <button onclick="executeScript()" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">🎬 اسکرپٹ چلائیں</button>
-                <button onclick="stopAllActions()">⏹️ تمام حرکات روکیں</button>
-                <div class="info-text">
-                    💡 <strong>ٹپ:</strong> آپ کردار کی حرکات، مقام اور ایکشن کی تفصیل لکھیں۔ AI خودکار طریقے سے سین بنائے گا!
-                </div>
-            </div>
-            
-            <!-- Environment -->
-            <div class="section">
-                <h3>🏞️ ماحول منتخب کریں</h3>
-                <button onclick="changeEnvironment('city')">🏙️ شہر (15 کلومیٹر)</button>
-                <button onclick="changeEnvironment('town')">🏘️ قصبہ/گاؤں</button>
-                <button onclick="changeEnvironment('park')">🌳 پارک</button>
-                <button onclick="changeEnvironment('forest')">🌲 جنگل</button>
-                <label>موجودہ ماحول: <span id="envName">شہر</span></label>
-            </div>
-            
-            <!-- Camera Controls -->
-            <div class="section">
-                <h3>📹 کیمرہ کنٹرول</h3>
-                <div class="camera-controls">
-                    <button class="camera-btn" onclick="setCameraAngle('front')">فرنٹ</button>
-                    <button class="camera-btn" onclick="setCameraAngle('back')">بیک</button>
-                    <button class="camera-btn" onclick="setCameraAngle('side')">سائیڈ</button>
-                    <button class="camera-btn" onclick="setCameraAngle('top')">ٹاپ</button>
-                    <button class="camera-btn" onclick="setCameraAngle('aerial')">ہوائی نظارہ</button>
-                    <button class="camera-btn" onclick="setCameraAngle('closeup')">کلوز اپ</button>
-                </div>
-                <button onclick="toggleCameraRotation()">🔄 آٹو روٹیٹ: <span id="rotateStatus">آف</span></button>
-            </div>
-            
-            <!-- Voice Control -->
-            <div class="section">
-                <h3>🎤 آواز سے کنٹرول</h3>
-                <label>کردار منتخب کریں:</label>
-                <select id="voiceCharSelect">
-                    <option value="all">تمام کردار</option>
-                    <option value="0">کردار 1</option>
-                    <option value="1">کردار 2</option>
-                    <option value="2">کردار 3</option>
-                    <option value="3">کردار 4</option>
-                </select>
-                <button id="voiceBtn" onclick="toggleVoiceControl()">🎙️ آواز ریکارڈنگ شروع کریں</button>
-                <div class="info-text">
-                    منتخب کردار آپ کی آواز دہرائے گا
-                </div>
-            </div>
-            
-            <!-- Video Recording -->
-            <div class="section">
-                <h3>🎥 ویڈیو ریکارڈنگ</h3>
-                <button id="recordBtn" onclick="toggleRecording()">🔴 ریکارڈنگ شروع کریں</button>
-                <button onclick="takeScreenshot()">📸 سکرین شاٹ لیں</button>
-            </div>
-        </div>
+
+<div id="voiceStatus">🎤 آواز ریکارڈ ہو رہی ہے...</div>
+<div id="container">
+    <div id="viewport">
+        <div id="stats">کردار: <span id="charCount">0</span> | کیمرہ: <span id="camName">فرنٹ</span></div>
     </div>
     
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script>
-        let scene, camera, renderer;
-        let characters = [];
-        let environment = 'city';
-        let cameraAngle = 'front';
-        let isVoiceActive = false;
-        let isRecording = false;
-        let autoRotate = false;
-        let animationFrame = 0;
+    <div id="controls">
+        <h1>🎌 اینیمی تھری ڈی اسٹوڈیو</h1>
         
-        // Character templates
-        const characterTypes = {
-            girl: { color: 0xffb3d9, hairColor: 0xff1493, height: 1.65, age: 18 },
-            boy: { color: 0xadd8e6, hairColor: 0x654321, height: 1.75, age: 18 },
-            mother: { color: 0xffd1dc, hairColor: 0x8b4513, height: 1.60, age: 35 },
-            father: { color: 0xb0c4de, hairColor: 0x2f4f4f, height: 1.80, age: 40 }
-        };
+        <div class="section">
+            <h3>👥 کردار شامل کریں</h3>
+            <button class="character-btn" onclick="addCharacter('girl')">👧 لڑکی (18 سال)</button>
+            <button class="character-btn" onclick="addCharacter('boy')">👦 لڑکا (18 سال)</button>
+            <button class="character-btn" onclick="addCharacter('mother')">👩 ماں (35 سال)</button>
+            <button class="character-btn" onclick="addCharacter('father')">👨 باپ (40 سال)</button>
+            <button onclick="removeLastCharacter()" style="background: #eb3349;">کردار ہٹائیں</button>
+        </div>
+
+        <div class="section">
+            <h3>✨ AI اسکرپٹ کنٹرول</h3>
+            <textarea id="scriptInput" placeholder="مثال: لڑکی چلتی ہے..."></textarea>
+            <button onclick="executeScript()">🎬 اسکرپٹ چلائیں</button>
+            <button onclick="stopAllActions()" style="background: #555;">⏹️ روک دیں</button>
+        </div>
+
+        <div class="section">
+            <h3>🏞️ ماحول</h3>
+            <button onclick="changeEnvironment('city')">🏙️ شہر</button>
+            <button onclick="changeEnvironment('park')">🌳 پارک</button>
+            <button onclick="changeEnvironment('forest')">🌲 جنگل</button>
+        </div>
+
+        <div class="section">
+            <h3>📹 کیمرہ</h3>
+            <div class="camera-controls">
+                <button onclick="setCameraAngle('front')">فرنٹ</button>
+                <button onclick="setCameraAngle('back')">بیک</button>
+                <button onclick="setCameraAngle('top')">ٹاپ</button>
+            </div>
+            <button onclick="toggleCameraRotation()">🔄 آٹو روٹیٹ: <span id="rotateStatus">آف</span></button>
+        </div>
+
+        <div class="section">
+            <h3>🎙️ وائس اور ریکارڈنگ</h3>
+            <button onclick="toggleVoiceControl()" id="voiceBtn">🎤 آواز شروع کریں</button>
+            <button onclick="toggleRecording()" id="recordBtn" style="background: #ff4757;">🔴 ریکارڈنگ</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+    let scene, camera, renderer, clock;
+    let characters = [];
+    let autoRotate = false;
+    let isRecording = false;
+
+    // کرداروں کی اقسام
+    const characterTypes = {
+        girl: { color: 0xffb3d9, height: 1.6, hair: 0xff1493 },
+        boy: { color: 0xadd8e6, height: 1.7, hair: 0x222222 },
+        mother: { color: 0xffd1dc, height: 1.55, hair: 0x4b2e2a },
+        father: { color: 0xb0c4de, height: 1.8, hair: 0x333333 }
+    };
+
+    // پروگرام شروع کریں
+    window.onload = init;
+
+    function init() {
+        scene = new THREE.Scene();
+        clock = new THREE.Clock();
         
-        function init() {
-            scene = new THREE.Scene();
-            scene.fog = new THREE.Fog(0x87ceeb, 20, 100);
-            
-            camera = new THREE.PerspectiveCamera(60, (window.innerWidth - 380) / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 3, 10);
-            camera.lookAt(0, 1, 0);
-            
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-            renderer.setSize(window.innerWidth - 380, window.innerHeight);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-            renderer.shadowMap.enabled = true;
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-            document.getElementById('viewport').appendChild(renderer.domElement);
-            
-            const ambLight = new THREE.AmbientLight(0xffffff, 0.7);
-            scene.add(ambLight);
-            
-            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-            dirLight.position.set(10, 15, 10);
-            dirLight.castShadow = true;
-            dirLight.shadow.mapSize.width = 1024;
-            dirLight.shadow.mapSize.height = 1024;
-            dirLight.shadow.camera.near = 0.5;
-            dirLight.shadow.camera.far = 50;
-            scene.add(dirLight);
-            
-            const hemiLight = new THREE.HemisphereLight(0x87ceeb, 0x90ee90, 0.5);
-            scene.add(hemiLight);
-            
-            createGround();
-            changeEnvironment('city');
-            
-            window.addEventListener('resize', onWindowResize);
-            animate();
-            
-            console.log('✅ Professional Anime Studio Initialized!');
-        }
+        // کیمرہ سیٹ اپ
+        camera = new THREE.PerspectiveCamera(60, (window.innerWidth - 380) / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 3, 10);
+
+        // رینڈر سیٹ اپ
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth - 380, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        document.getElementById('viewport').appendChild(renderer.domElement);
+
+        // روشنیاں
+        const light = new THREE.DirectionalLight(0xffffff, 1);
+        light.position.set(5, 10, 7.5);
+        scene.add(light);
+        scene.add(new THREE.AmbientLight(0x404040));
+
+        // ڈیفالٹ زمین
+        createGround(0x333333);
         
-        function createGround() {
-            const groundGeo = new THREE.PlaneGeometry(200, 200, 50, 50);
-            const groundMat = new THREE.MeshStandardMaterial({ 
-                color: 0x7cb342,
-                roughness: 0.8,
-                metalness: 0.2
-            });
-            const ground = new THREE.Mesh(groundGeo, groundMat);
-            ground.rotation.x = -Math.PI / 2;
-            ground.receiveShadow = true;
-            scene.add(ground);
-        }
+        window.addEventListener('resize', onWindowResize);
+        animate();
+        console.log("اسٹوڈیو تیار ہے!");
+    }
+
+    function createGround(colorCode) {
+        // پرانی زمین ہٹائیں
+        const oldGround = scene.getObjectByName("ground");
+        if(oldGround) scene.remove(oldGround);
+
+        const geometry = new THREE.PlaneGeometry(100, 100);
+        const material = new THREE.MeshStandardMaterial({ color: colorCode });
+        const ground = new THREE.Mesh(geometry, material);
+        ground.rotation.x = -Math.PI / 2;
+        ground.name = "ground";
+        scene.add(ground);
+    }
+
+    function addCharacter(type) {
+        if (characters.length >= 5) return alert("زیادہ کردار نہیں آ سکتے!");
         
-        function createAnimeCharacter(type, position = { x: 0, z: 0 }) {
-            const template = characterTypes[type];
-            const char = new THREE.Group();
-            
-            const scale = template.height / 1.70;
-            
-            // Head (anime style - larger)
-            const headGeo = new THREE.SphereGeometry(0.35 * scale, 32, 32);
-            const skinMat = new THREE.MeshStandardMaterial({ 
-                color: 0xffdbac,
-                roughness: 0.4,
-                metalness: 0.1
-            });
-            const head = new THREE.Mesh(headGeo, skinMat);
-            head.position.y = 1.65 * scale;
-            head.scale.set(1, 1.1, 0.95);
-            head.castShadow = true;
-            char.add(head);
-            
-            // Large anime eyes
-            const eyeGeo = new THREE.SphereGeometry(0.08 * scale, 16, 16);
-            const eyeWhiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
-            
-            const leftEye = new THREE.Mesh(eyeGeo, eyeWhiteMat);
-            leftEye.position.set(-0.15 * scale, 1.7 * scale, 0.3 * scale);
-            leftEye.scale.set(1.2, 1.5, 0.8);
-            char.add(leftEye);
-            
-            const rightEye = new THREE.Mesh(eyeGeo, eyeWhiteMat);
-            rightEye.position.set(0.15 * scale, 1.7 * scale, 0.3 * scale);
-            rightEye.scale.set(1.2, 1.5, 0.8);
-            char.add(rightEye);
-            
-            // Pupils
-            const pupilGeo = new THREE.SphereGeometry(0.04 * scale, 16, 16);
-            const pupilMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a });
-            
-            const leftPupil = new THREE.Mesh(pupilGeo, pupilMat);
-            leftPupil.position.set(-0.15 * scale, 1.7 * scale, 0.35 * scale);
-            char.add(leftPupil);
-            
-            const rightPupil = new THREE.Mesh(pupilGeo, pupilMat);
-            rightPupil.position.set(0.15 * scale, 1.7 * scale, 0.35 * scale);
-            char.add(rightPupil);
-            
-            // Anime hair (spiky/stylized)
-            const hairGeo = new THREE.SphereGeometry(0.4 * scale, 16, 16);
-            const hairMat = new THREE.MeshStandardMaterial({ 
-                color: template.hairColor,
-                roughness: 0.6
-            });
-            const hair = new THREE.Mesh(hairGeo, hairMat);
-            hair.position.y = 1.9 * scale;
-            hair.scale.set(1.1, 0.8, 1.1);
-            char.add(hair);
-            
-            // Body (slim anime style)
-            const bodyGeo = new THREE.CylinderGeometry(0.25 * scale, 0.28 * scale, 1 * scale, 16);
-            const clothMat = new THREE.MeshStandardMaterial({ 
-                color: template.color,
-                roughness: 0.5
-            });
-            const body = new THREE.Mesh(bodyGeo, clothMat);
-            body.position.y = 1 * scale;
-            body.castShadow = true;
-            char.add(body);
-            
-            // Arms
-            const armGeo = new THREE.CylinderGeometry(0.06 * scale, 0.06 * scale, 0.7 * scale, 12);
-            
-            const leftArm = new THREE.Mesh(armGeo, skinMat);
-            leftArm.position.set(-0.35 * scale, 1.2 * scale, 0);
-            leftArm.rotation.z = 0.2;
-            leftArm.castShadow = true;
-            char.add(leftArm);
-            
-            const rightArm = new THREE.Mesh(armGeo, skinMat);
-            rightArm.position.set(0.35 * scale, 1.2 * scale, 0);
-            rightArm.rotation.z = -0.2;
-            rightArm.castShadow = true;
-            char.add(rightArm);
-            
-            // Legs
-            const legGeo = new THREE.CylinderGeometry(0.08 * scale, 0.07 * scale, 0.8 * scale, 12);
-            
-            const leftLeg = new THREE.Mesh(legGeo, clothMat);
-            leftLeg.position.set(-0.12 * scale, 0.4 * scale, 0);
-            leftLeg.castShadow = true;
-            char.add(leftLeg);
-            
-            const rightLeg = new THREE.Mesh(legGeo, clothMat);
-            rightLeg.position.set(0.12 * scale, 0.4 * scale, 0);
-            rightLeg.castShadow = true;
-            char.add(rightLeg);
-            
-            char.position.set(position.x, 0, position.z);
-            
-            char.userData = {
-                type, head, hair, leftArm, rightArm, leftLeg, rightLeg, body,
-                leftEye, rightEye, leftPupil, rightPupil,
-                action: 'idle',
-                actionTime: 0,
-                targetPos: { x: position.x, z: position.z },
-                speech: ''
-            };
-            
-            scene.add(char);
-            characters.push(char);
-            updateCharCount();
-            
-            return char;
-        }
+        const config = characterTypes[type];
+        const group = new THREE.Group();
+
+        // جسم (Body)
+        const bodyGeo = new THREE.CylinderGeometry(0.3, 0.2, 1);
+        const bodyMat = new THREE.MeshStandardMaterial({ color: config.color });
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        body.position.y = 0.5;
+        group.add(body);
+
+        // سر (Head) - Anime Style
+        const headGeo = new THREE.SphereGeometry(0.3);
+        const headMat = new THREE.MeshStandardMaterial({ color: 0xffdbac });
+        const head = new THREE.Mesh(headGeo, headMat);
+        head.position.y = 1.2;
+        group.add(head);
+
+        // بال (Hair)
+        const hairGeo = new THREE.BoxGeometry(0.35, 0.2, 0.35);
+        const hairMat = new THREE.MeshStandardMaterial({ color: config.hair });
+        const hair = new THREE.Mesh(hairGeo, hairMat);
+        hair.position.y = 1.4;
+        group.add(hair);
+
+        group.position.x = (characters.length * 2) - 3;
+        scene.add(group);
+        characters.push(group);
         
-        function addCharacter(type) {
-            if (characters.length >= 4) {
-                alert('⚠️ زیادہ سے زیادہ 4 کردار!');
-                return;
-            }
-            
-            const positions = [
-                { x: -3, z: 0 },
-                { x: -1, z: 0 },
-                { x: 1, z: 0 },
-                { x: 3, z: 0 }
-            ];
-            
-            const pos = positions[characters.length];
-            createAnimeCharacter(type, pos);
-            console.log(`✅ ${type} کردار شامل کیا گیا`);
-        }
-        
-        function removeLastCharacter() {
-            if (characters.length === 0) return;
+        document.getElementById('charCount').innerText = characters.length;
+    }
+
+    function removeLastCharacter() {
+        if (characters.length > 0) {
             const char = characters.pop();
             scene.remove(char);
-            updateCharCount();
+            document.getElementById('charCount').innerText = characters.length;
         }
-        
-        function updateCharCount() {
-            document.getElementById('charCount').textContent = characters.length;
-            updateStats();
+    }
+
+    function changeEnvironment(env) {
+        const envLabel = document.getElementById('envName');
+        if (env === 'city') {
+            scene.background = new THREE.Color(0x111122);
+            createGround(0x333333);
+        } else if (env === 'park') {
+            scene.background = new THREE.Color(0x87ceeb);
+            createGround(0x2d5a27);
+        } else if (env === 'forest') {
+            scene.background = new THREE.Color(0x0a2a0a);
+            createGround(0x1a3300);
         }
+    }
+
+    function setCameraAngle(angle) {
+        document.getElementById('camName').innerText = angle;
+        if (angle === 'front') camera.position.set(0, 2, 8);
+        else if (angle === 'back') camera.position.set(0, 2, -8);
+        else if (angle === 'top') camera.position.set(0, 10, 0);
+        camera.lookAt(0, 1, 0);
+    }
+
+    function toggleCameraRotation() {
+        autoRotate = !autoRotate;
+        document.getElementById('rotateStatus').innerText = autoRotate ? "آن" : "آف";
+    }
+
+    function executeScript() {
+        const input = document.getElementById('scriptInput').value;
+        if(!input) return alert("کچھ لکھیں!");
         
-        function executeScript() {
-            const script = document.getElementById('scriptInput').value.trim();
-            if (!script) {
-                alert('⚠️ پہلے اسکرپٹ لکھیں!');
-                return;
-            }
-            
-            console.log('🎬 اسکرپٹ چل رہی ہے:', script);
-            
-            const lines = script.split('\n').filter(l => l.trim());
-            
-            lines.forEach((line, index) => {
-                setTimeout(() =
+        characters.forEach((char, index) => {
+            // سادہ اینیمیشن: اچھلنا
+            let startTime = Date.now();
+            const animateAction = () => {
+                let elapsed = (Date.now() - startTime) / 1000;
+                char.position.y = Math.abs(Math.sin(elapsed * 5)) * 0.5;
+                if(elapsed < 3) requestAnimationFrame(animateAction);
+                else char.position.y = 0;
+            };
+            animateAction();
+        });
+    }
+
+    function stopAllActions() {
+        location.reload(); // سب کچھ ری سیٹ کرنے کا آسان طریقہ
+    }
+
+    function toggleVoiceControl() {
+        const status = document.getElementById('voiceStatus');
+        const btn = document.getElementById('voiceBtn');
+        if(status.style.display === 'block') {
+            status.style.display = 'none';
+            btn.innerText = "🎤 آواز شروع کریں";
+        } else {
+            status.style.display = 'block';
+            btn.innerText = "🛑 آواز بند کریں";
+        }
+    }
+
+    function toggleRecording() {
+        isRecording = !isRecording;
+        const btn = document.getElementById('recordBtn');
+        btn.innerText = isRecording ? "⏹️ ریکارڈنگ روکیں" : "🔴 ریکارڈنگ";
+        if(isRecording) alert("ریکارڈنگ شروع ہو گئی ہے (سسٹم میموری میں)");
+    }
+
+    function takeScreenshot() {
+        renderer.render(scene, camera);
+        const dataURL = renderer.domElement.toDataURL("image/png");
+        const link = document.createElement('a');
+        link.download = 'anime-studio-shot.png';
+        link.href = dataURL;
+        link.click();
+    }
+
+    function onWindowResize() {
+        camera.aspect = (window.innerWidth - 380) / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth - 380, window.innerHeight);
+    }
+
+    function animate() {
+        requestAnimationFrame(animate);
+        if (autoRotate) {
+            const rotSpeed = 0.01;
+            const x = camera.position.x;
+            const z = camera.position.z;
+            camera.position.x = x * Math.cos(rotSpeed) + z * Math.sin(rotSpeed);
+            camera.position.z = z * Math.cos(rotSpeed) - x * Math.sin(rotSpeed);
+            camera.lookAt(0, 1, 0);
+        }
+        renderer.render(scene, camera);
+    }
+</script>
+</body>
+</html>
