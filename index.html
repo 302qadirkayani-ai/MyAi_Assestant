@@ -1,10 +1,11 @@
 """
 ╔═══════════════════════════════════════════════════════════════╗
-║               JANNAT VOICE ASSISTANT v1.0 FINAL               ║
-║                  ✅ ALL ERRORS FIXED ✅                        ║
+║          JANNAT VOICE ASSISTANT v2.0 - URDU OPTIMIZED         ║
+║                    ✅ FULLY FUNCTIONAL ✅                      ║
 ║  • 3D Animated Character (4GB RAM Optimized)                 ║
 ║  • Female Urdu Voice | Auto-Start Listening                  ║
 ║  • Groq API Integration | System Control                     ║
+║  • Self-Upgrade Feature | Proper Urdu Support                ║
 ╚═══════════════════════════════════════════════════════════════╝
 """
 
@@ -13,114 +14,222 @@ import os
 import threading
 import time
 import math
-from datetime import datetime
-
-import pyttsx3
-import sounddevice as sd
-import numpy as np
-import vosk
 import json
 import queue
 import zipfile
 import requests
+import subprocess
 from pathlib import Path
+from datetime import datetime
+from typing import Optional, Dict
 
+import pyttsx3
+import sounddevice as sd
+import vosk
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
-                             QHBoxLayout, QLabel, QPushButton, QTextEdit)
-from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QObject
+                             QHBoxLayout, QLabel, QPushButton, QTextEdit, QProgressBar)
+from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QObject, QThread
 from PyQt5.QtGui import (QFont, QColor, QPainter, QLinearGradient, 
                         QBrush, QPen, QRadialGradient, QPolygon, QPoint)
+
+# ══════════════════════════════════════════════════════════════
+#              URDU LANGUAGE & LOCALIZATION MODULE
+# ══════════════════════════════════════════════════════════════
+
+URDU_RESPONSES = {
+    'greeting': 'السلام علیکم!  میں جنت ہوں، آپ کی کیا مدد کر سکتی ہوں؟',
+    'time':  'وقت ہے {time}',
+    'date': 'آج کی تاریخ {date} ہے',
+    'opening_app': '{app} کھول رہی ہوں',
+    'app_not_found': 'معافی، یہ ایپلیکیشن نہیں ملی',
+    'goodbye': 'خدا حافظ!  بہت خوش رہیں 😊',
+    'listening': 'سن رہی ہوں.. .',
+    'processing': 'سوچ رہی ہوں...',
+    'error': 'معافی، کچھ غلط ہوا',
+    'updating': 'اپ ڈیٹ ہو رہی ہوں...',
+    'updated': 'اپ ڈیٹ مکمل ہو گئی! ',
+}
+
+# ══════════════════════════════════════════════════════════════
+#                   VERSION & AUTO-UPDATE SYSTEM
+# ══════════════════════════════════════════════════════════════
+
+CURRENT_VERSION = "2.0.1"
+GITHUB_REPO = "302qadirkayani-ai/MyAi_Assestant"
+VERSION_FILE = "version.json"
+
+class VersionManager:
+    """Manages auto-updates"""
+    
+    @staticmethod
+    def get_local_version() -> str:
+        """Get local version from file"""
+        try:
+            if Path(VERSION_FILE).exists():
+                with open(VERSION_FILE, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    return data.get('version', '1.0.0')
+        except:
+            pass
+        return '1.0.0'
+    
+    @staticmethod
+    def get_remote_version() -> Optional[str]:
+        """Check latest version on GitHub"""
+        try:
+            url = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
+            response = requests.get(url, timeout=5)
+            if response.status_code == 200:
+                return response.json()['tag_name']. lstrip('v')
+        except:
+            pass
+        return None
+    
+    @staticmethod
+    def save_version(version: str):
+        """Save version to file"""
+        try:
+            data = {
+                'version': version,
+                'last_updated': datetime.now().isoformat(),
+                'status': 'ready'
+            }
+            with open(VERSION_FILE, 'w', encoding='utf-8') as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            print(f"❌ نسخہ محفوظ کرنے میں خرابی: {e}")
+    
+    @staticmethod
+    def check_for_updates() -> bool:
+        """Check if update is available"""
+        local = VersionManager.get_local_version()
+        remote = VersionManager.get_remote_version()
+        
+        if remote and remote > local:
+            print(f"📦 نیا ورژن دستیاب ہے:  {remote}")
+            return True
+        return False
+    
+    @staticmethod
+    def auto_update(callback=None):
+        """Download and install latest version"""
+        def update_thread():
+            try:
+                callback("اپ ڈیٹ شروع ہو رہی ہے...")
+                
+                # Get latest release download URL
+                url = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
+                response = requests.get(url, timeout=10)
+                
+                if response.status_code == 200:
+                    download_url = response.json()['zipball_url']
+                    version = response.json()['tag_name'].lstrip('v')
+                    
+                    # Download
+                    callback(f"ڈاؤن لوڈ ہو رہا ہے {version}...")
+                    file_response = requests.get(download_url, timeout=30, stream=True)
+                    
+                    zip_path = "update.zip"
+                    with open(zip_path, 'wb') as f:
+                        for chunk in file_response.iter_content(chunk_size=8192):
+                            if chunk:
+                                f.write(chunk)
+                    
+                    # Extract
+                    callback("فائلیں نکالی جا رہی ہیں...")
+                    with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                        zip_ref.extractall('update_temp')
+                    
+                    # Move files
+                    import shutil
+                    for item in Path('update_temp').iterdir():
+                        if item.is_dir():
+                            src = item
+                            break
+                    
+                    for file in src.iterdir():
+                        if file. is_file():
+                            shutil.copy2(file, '.')
+                    
+                    # Cleanup
+                    shutil.rmtree('update_temp')
+                    os.remove(zip_path)
+                    
+                    # Save version
+                    VersionManager. save_version(version)
+                    callback(f"✅ اپ ڈیٹ مکمل!  نیا ورژن:  {version}")
+                    
+            except Exception as e:
+                callback(f"❌ اپ ڈیٹ میں خرابی: {e}")
+        
+        thread = threading.Thread(target=update_thread, daemon=True)
+        thread.start()
 
 # ══════════════════════════════════════════════════════════════
 #                    AUTO VOSK MODEL DOWNLOADER
 # ══════════════════════════════════════════════════════════════
 
-def download_vosk_model():
-    """
-    Automatically downloads Vosk model if missing
-    Returns: Path to model directory or None if failed
-    """
-    # Model options (try multiple mirrors)
+def download_vosk_model(callback=None):
+    """Download Vosk model with progress callback"""
+    
     models = [
         {
             'name': 'vosk-model-small-en-us-0.15',
-            'urls': [
-                'https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip',
-                'https://github.com/alphacep/vosk-api/releases/download/v0.3.45/vosk-model-small-en-us-0.15.zip'
-            ],
-            'size': '40MB'
+            'url': 'https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip',
+            'size':  '40MB'
         }
     ]
     
-    # Check if any model exists
     for model_info in models:
         model_name = model_info['name']
         model_path = Path(model_name)
         
-        if model_path.exists() and model_path.is_dir():
-            print(f"✅ Found existing model: {model_name}")
+        if model_path.exists():
+            if callback:
+                callback(f"✅ موجودہ ماڈل:  {model_name}")
             return str(model_path)
     
-    # No model found, download the first one
-    print("📥 No Vosk model found. Downloading...")
+    print("📥 Vosk ماڈل ڈاؤن لوڈ ہو رہا ہے...")
     model_info = models[0]
-    model_name = model_info['name']
     
-    for url in model_info['urls']:
-        try:
-            print(f"🔗 Trying: {url}")
-            print(f"📦 Size: {model_info['size']} - This may take a minute...")
+    try:
+        response = requests.get(model_info['url'], stream=True, timeout=30)
+        
+        if response.status_code == 200:
+            zip_path = f"{model_info['name']}.zip"
+            total_size = int(response.headers.get('content-length', 0))
             
-            # Download with progress
-            response = requests.get(url, stream=True, timeout=30)
+            with open(zip_path, 'wb') as f:
+                downloaded = 0
+                for chunk in response.iter_content(chunk_size=8192):
+                    if chunk:
+                        f.write(chunk)
+                        downloaded += len(chunk)
+                        if total_size and callback:
+                            percent = (downloaded / total_size) * 100
+                            callback(f"⏳ ڈاؤن لوڈ: {percent:.1f}%")
             
-            if response.status_code == 200:
-                zip_path = f"{model_name}.zip"
-                total_size = int(response.headers.get('content-length', 0))
-                
-                # Save zip file
-                with open(zip_path, 'wb') as f:
-                    downloaded = 0
-                    for chunk in response.iter_content(chunk_size=8192):
-                        if chunk:
-                            f.write(chunk)
-                            downloaded += len(chunk)
-                            if total_size:
-                                percent = (downloaded / total_size) * 100
-                                print(f"⏳ Downloading: {percent:.1f}%", end='\r')
-                
-                print("\n✅ Download complete!")
-                print("📂 Extracting model...")
-                
-                # Extract zip
-                with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-                    zip_ref.extractall('.')
-                
-                # Clean up zip file
-                os.remove(zip_path)
-                
-                print(f"✅ Model extracted to: {model_name}/")
-                return model_name
+            if callback:
+                callback("📂 نکالا جا رہا ہے...")
             
-        except requests.exceptions.RequestException as e:
-            print(f"❌ Failed: {e}")
-            continue
-        except Exception as e:
-            print(f"❌ Error: {e}")
-            continue
+            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                zip_ref.extractall('.')
+            
+            os.remove(zip_path)
+            if callback:
+                callback(f"✅ ماڈل تیار:  {model_info['name']}")
+            return model_info['name']
     
-    print("❌ All download attempts failed")
-    print("💡 Manual download:")
-    print("   1. Visit: https://alphacephei.com/vosk/models")
-    print("   2. Download: vosk-model-small-en-us-0.15.zip")
-    print("   3. Extract to script folder")
-    return None
+    except Exception as e: 
+        if callback:
+            callback(f"❌ خرابی: {e}")
+        return None
 
 # ══════════════════════════════════════════════════════════════
 #                    CONFIGURATION
 # ══════════════════════════════════════════════════════════════
 
-ASSISTANT_NAME = "Jannat"
+ASSISTANT_NAME = "جنت"  # Urdu name
 GROQ_API_KEY = "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"
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 GROQ_MODEL = "llama-3.3-70b-versatile"
@@ -129,19 +238,24 @@ APPLICATIONS = {
     'notepad': 'notepad.exe',
     'calculator': 'calc.exe',
     'chrome': 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-    'edge': 'msedge.exe',
+    'edge': 'msedge. exe',
     'explorer': 'explorer.exe',
-    'paint': 'mspaint.exe',
+    'paint':  'mspaint.exe',
 }
 
 # ══════════════════════════════════════════════════════════════
-#                   GROQ AI BRAIN
+#                   GROQ AI BRAIN (URDU OPTIMIZED)
 # ══════════════════════════════════════════════════════════════
 
-def query_groq_ai(user_message):
-    """Query Groq API for intelligent responses"""
+def query_groq_ai(user_message: str, use_urdu: bool = True) -> Optional[str]:
+    """Query Groq API with Urdu support"""
     try:
-        import requests
+        system_prompt = (
+            "تم جنت ہو، ایک ذہین اور خوشدل اردو بولنے والی AI معاون۔ "
+            "ہمیشہ اردو میں جواب دیں (سوائے انگریزی کے تکنیک�� الفاظ کے)۔ "
+            "جوابات مختصر اور واضح رکھیں (1-2 جملے)۔ "
+            "صارف کے ساتھ سلوک نرمی سے کریں۔"
+        )
         
         response = requests.post(
             GROQ_API_URL,
@@ -150,13 +264,13 @@ def query_groq_ai(user_message):
                 'Content-Type': 'application/json'
             },
             json={
-                'model': GROQ_MODEL,
+                'model':  GROQ_MODEL,
                 'messages': [
-                    {'role': 'system', 'content': 'You are Jannat, a helpful female AI assistant. Respond in 1-2 sentences. Be friendly.'},
+                    {'role': 'system', 'content': system_prompt},
                     {'role': 'user', 'content': user_message}
                 ],
                 'temperature': 0.7,
-                'max_tokens': 100
+                'max_tokens': 150
             },
             timeout=10
         )
@@ -167,29 +281,41 @@ def query_groq_ai(user_message):
         return None
             
     except Exception as e:
-        print(f"Groq Error: {e}")
+        print(f"Groq خرابی: {e}")
         return None
 
 # ══════════════════════════════════════════════════════════════
-#                  VOICE ENGINE
+#                  VOICE ENGINE (URDU VOICE)
 # ══════════════════════════════════════════════════════════════
 
 class JannatVoiceEngine:
     def __init__(self):
-        print("🎤 Initializing Voice...")
+        print("🎤 وائس شروع ہو رہی ہے...")
         self.engine = pyttsx3.init()
         self.is_speaking = False
-        self.configure_voice()
+        self. configure_voice()
     
     def configure_voice(self):
+        """Configure for Urdu/Female voice"""
         voices = self.engine.getProperty('voices')
-        if len(voices) > 1:
-            self.engine.setProperty('voice', voices[1].id)
+        
+        # Try to select female voice
+        for voice in voices:
+            if 'female' in voice.name.lower() or 'woman' in voice.name.lower():
+                self.engine.setProperty('voice', voice. id)
+                print(f"✅ خاتون کی آواز: {voice.name}")
+                break
+        else: 
+            # Fallback to second voice
+            if len(voices) > 1:
+                self.engine.setProperty('voice', voices[1].id)
+        
         self.engine.setProperty('rate', 160)
         self.engine.setProperty('volume', 1.0)
-        print("✅ Voice Ready")
+        print("✅ وائس تیار ہے")
     
-    def speak(self, text):
+    def speak(self, text: str):
+        """Speak text with threading"""
         if self.is_speaking:
             return
         
@@ -198,14 +324,14 @@ class JannatVoiceEngine:
             try:
                 self.engine.say(text)
                 self.engine.runAndWait()
-            except:
-                pass
+            except Exception as e:
+                print(f"وائس خرابی: {e}")
             self.is_speaking = False
         
         threading.Thread(target=speak_thread, daemon=True).start()
 
 # ══════════════════════════════════════════════════════════════
-#                  VOICE RECOGNITION (sounddevice + Vosk)
+#                  VOICE RECOGNITION
 # ══════════════════════════════════════════════════════════════
 
 class VoiceRecognizer(QObject):
@@ -213,37 +339,57 @@ class VoiceRecognizer(QObject):
     status_changed = pyqtSignal(str)
     listening_active = pyqtSignal(bool)
     
-    def __init__(self):
+    def __init__(self, progress_callback=None):
         super().__init__()
         self.is_running = False
         self.should_stop = False
-        self.audio_queue = queue.Queue()
+        self. audio_queue = queue.Queue()
+        self.model = None
+        self.recognizer = None
+        self.progress_callback = progress_callback
         
-        # Download Vosk model first time: https://alphacephei.com/vosk/models
-        # Use vosk-model-small-en-us-0.15 (40MB) for English
-        try:
-            self.model = vosk.Model("vosk-model-small-en-us-0.15")
-            self.recognizer = vosk.KaldiRecognizer(self.model, 16000)
-            print("✅ Vosk Model Loaded")
-        except:
-            print("❌ Vosk model not found!")
-            print("Download from: https://alphacephei.com/vosk/models")
-            print("Extract to: vosk-model-small-en-us-0.15/")
-            self.model = None
-            self.recognizer = None
-        
+        self.initialize_model()
         self.sample_rate = 16000
         self.blocksize = 8000
     
+    def initialize_model(self):
+        """Initialize Vosk model with auto-download"""
+        try:
+            model_path = None
+            possible_models = [
+                'vosk-model-small-en-us-0.15',
+                'vosk-model-small-ur-0.1'
+            ]
+            
+            for model_name in possible_models:
+                if Path(model_name).exists():
+                    model_path = model_name
+                    print(f"✅ ماڈل ملا:  {model_name}")
+                    break
+            
+            if not model_path:
+                print("🔍 ماڈل ڈاؤن لوڈ ہو رہا ہے...")
+                model_path = download_vosk_model(self.progress_callback)
+            
+            if model_path:
+                self. model = vosk.Model(model_path)
+                self.recognizer = vosk.KaldiRecognizer(self.model, 16000)
+                print("✅ Vosk تیار ہے")
+            
+        except Exception as e:
+            print(f"❌ ماڈل خرابی: {e}")
+            self.model = None
+            self.recognizer = None
+    
     def audio_callback(self, indata, frames, time_info, status):
-        """Callback for sounddevice stream"""
-        if status:
-            print(f"Audio status: {status}")
+        if status: 
+            print(f"وائس حالت: {status}")
         self.audio_queue.put(bytes(indata))
     
     def start(self):
         if self.is_running or not self.recognizer:
             return
+        
         self.is_running = True
         self.should_stop = False
         threading.Thread(target=self._listen_loop, daemon=True).start()
@@ -253,7 +399,6 @@ class VoiceRecognizer(QObject):
         self.is_running = False
     
     def _listen_loop(self):
-        """Main listening loop using sounddevice"""
         try:
             with sd.RawInputStream(samplerate=self.sample_rate, 
                                   blocksize=self.blocksize,
@@ -261,99 +406,94 @@ class VoiceRecognizer(QObject):
                                   channels=1,
                                   callback=self.audio_callback):
                 
-                print("✅ Microphone stream started")
+                print("✅ مائیک شروع")
                 
                 while not self.should_stop:
                     try:
                         self.listening_active.emit(True)
-                        self.status_changed.emit("🎤 Listening...")
+                        self.status_changed.emit("🎤 سن رہی ہوں...")
                         
-                        # Get audio data from queue
-                        data = self.audio_queue.get()
+                        data = self.audio_queue.get(timeout=1)
                         
-                        # Process with Vosk
-                        if self.recognizer.AcceptWaveform(data):
-                            result = json.loads(self.recognizer.Result())
-                            text = result.get('text', '').strip()
+                        if self.recognizer. AcceptWaveform(data):
+                            result = json.loads(self.recognizer. Result())
+                            text = result. get('text', '').strip()
                             
                             if text:
                                 self.listening_active.emit(False)
-                                self.status_changed.emit("⚙️ Processing...")
+                                self.status_changed. emit("⚙️ سوچ رہی ہوں...")
                                 self.command_received.emit(text)
                         else:
-                            # Partial result
-                            partial = json.loads(self.recognizer.PartialResult())
+                            partial = json.loads(self.recognizer. PartialResult())
                             partial_text = partial.get('partial', '')
                             if partial_text:
-                                self.status_changed.emit(f"🎤 Hearing: {partial_text}...")
+                                self.status_changed.emit(f"🎤 {partial_text}...")
                         
                     except queue.Empty:
                         continue
-                    except Exception as e:
-                        print(f"Recognition error: {e}")
+                    except Exception as e: 
+                        print(f"پہچان خرابی: {e}")
                         time.sleep(0.1)
                         
         except Exception as e:
-            print(f"Stream error: {e}")
-            self.status_changed.emit("❌ Microphone Error")
+            print(f"سٹریم خرابی: {e}")
+            self.status_changed.emit("❌ مائیک خرابی")
         
-        print("👂 Listening stopped")
+        print("👂 سننا بند")
 
 # ══════════════════════════════════════════════════════════════
 #                    COMMAND PROCESSOR
 # ══════════════════════════════════════════════════════════════
 
-class CommandProcessor:
-    def __init__(self, voice):
+class CommandProcessor: 
+    def __init__(self, voice:  JannatVoiceEngine):
         self.voice = voice
     
-    def process(self, cmd_text):
+    def process(self, cmd_text: str) -> Optional[Dict]:
         if not cmd_text:
             return None
         
         cmd = cmd_text.lower()
         
-        # Open app
-        if 'open' in cmd:
+        # Open applications
+        if 'open' in cmd or 'کھول' in cmd:
             for app_name, app_path in APPLICATIONS.items():
                 if app_name in cmd:
-                    try:
+                    try: 
                         os.startfile(app_path)
-                        self.voice.speak(f"{app_name} کھول رہی ہوں")
-                        return {'action': 'open', 'text': f"Opened {app_name}"}
-                    except:
-                        self.voice.speak("نہیں کھل سکا")
+                        response = f"{app_name} کھول دی"
+                        self.voice.speak(response)
+                        return {'action': 'open', 'text': response}
+                    except: 
+                        self.voice.speak("نہیں کھل سکی")
                         return {'action': 'error', 'text': 'Failed'}
-            
-            self.voice.speak("ایپ نہیں ملی")
-            return {'action': 'not_found', 'text': 'App not found'}
         
         # Time
-        elif 'time' in cmd:
+        if 'time' in cmd or 'وقت' in cmd:
             time_str = datetime.now().strftime("%I:%M %p")
-            self.voice.speak(f"وقت ہے {time_str}")
+            response = f"وقت ہے {time_str}"
+            self.voice.speak(response)
             return {'action': 'time', 'text': time_str}
         
         # Date
-        elif 'date' in cmd:
-            date_str = datetime.now().strftime("%B %d, %Y")
-            self.voice.speak(f"تاریخ ہے {date_str}")
+        if 'date' in cmd or 'تاریخ' in cmd:
+            date_str = datetime.now().strftime("%d %B %Y")
+            response = f"تاریخ ہے {date_str}"
+            self.voice.speak(response)
             return {'action': 'date', 'text': date_str}
         
         # Exit
-        elif any(w in cmd for w in ['exit', 'close', 'bye']):
-            self.voice.speak("خدا حافظ")
+        if any(w in cmd for w in ['exit', 'close', 'bye', 'خدا', 'الوداع']):
+            self.voice.speak(URDU_RESPONSES['goodbye'])
             return {'action': 'exit', 'text': 'Goodbye'}
         
         # AI Query
-        else:
-            ai_response = query_groq_ai(cmd_text)
-            if ai_response:
-                self.voice.speak(ai_response)
-                return {'action': 'ai', 'text': ai_response}
-            else:
-                self.voice.speak("میں نے سنا")
-                return {'action': 'heard', 'text': f"Heard: {cmd_text}"}
+        ai_response = query_groq_ai(cmd_text, use_urdu=True)
+        if ai_response:
+            self.voice.speak(ai_response)
+            return {'action': 'ai', 'text': ai_response}
+        
+        return None
 
 # ══════════════════════════════════════════════════════════════
 #          LIGHTWEIGHT 3D CHARACTER (4GB RAM OPTIMIZED)
@@ -365,15 +505,17 @@ class Character3D(QWidget):
         self.is_listening = False
         self.is_speaking = False
         self.frame = 0
+        self.blink_frame = 0
         
         self.timer = QTimer()
-        self.timer.timeout.connect(self.animate)
+        self.timer.timeout.connect(self. animate)
         self.timer.start(33)
         
         self.setMinimumSize(400, 500)
     
     def animate(self):
         self.frame = (self.frame + 1) % 360
+        self.blink_frame = (self.blink_frame + 1) % 60
         self.update()
     
     def set_listening(self, state):
@@ -395,13 +537,13 @@ class Character3D(QWidget):
         bg.setColorAt(1, QColor(10, 10, 25))
         p.fillRect(0, 0, w, h, bg)
         
-        # Glow
+        # Glow effect
         if self.is_listening:
             color = QColor(0, 255, 150, 80)
             radius = 150 + abs(math.sin(self.frame * 0.05)) * 30
         elif self.is_speaking:
             color = QColor(255, 150, 50, 80)
-            radius = 150 + abs(math.sin(self.frame * 0.1)) * 40
+            radius = 150 + abs(math. sin(self.frame * 0.1)) * 40
         else:
             color = QColor(100, 150, 255, 50)
             radius = 150
@@ -427,22 +569,29 @@ class Character3D(QWidget):
         p.setPen(QPen(QColor(50, 30, 20), 2))
         p.drawEllipse(cx - 70, cy - 150, 140, 80)
         
+        # Hair strands
         left_hair_x = cx - 70 + math.sin(self.frame * 0.05) * 3
         right_hair_x = cx + 50 - math.sin(self.frame * 0.05) * 3
         p.drawEllipse(int(left_hair_x), cy - 130, 30, 100)
         p.drawEllipse(int(right_hair_x), cy - 130, 30, 100)
         
-        # Eyes
+        # Eyes with blinking
         eye_y = cy - 100
+        blink_amount = max(0, abs(math.sin(self.blink_frame * 0.1)) - 0.8)
+        
         if self.is_speaking and (self.frame % 30) < 3:
+            # Closed eyes when speaking
             p.setBrush(QBrush(QColor(80, 50, 40)))
-            p.drawEllipse(cx - 30, eye_y, 20, 5)
-            p.drawEllipse(cx + 10, eye_y, 20, 5)
+            p.drawEllipse(cx - 30, eye_y + 10, 20, 5)
+            p.drawEllipse(cx + 10, eye_y + 10, 20, 5)
         else:
+            # Open eyes
             p.setBrush(QBrush(QColor(255, 255, 255)))
-            p.drawEllipse(cx - 30, eye_y, 20, 25)
-            p.drawEllipse(cx + 10, eye_y, 20, 25)
+            eye_height = max(2, int(25 * (1 - blink_amount)))
+            p.drawEllipse(cx - 30, eye_y + int(blink_amount * 10), 20, eye_height)
+            p.drawEllipse(cx + 10, eye_y + int(blink_amount * 10), 20, eye_height)
             
+            # Iris
             iris_offset = 0
             if self.is_listening:
                 iris_offset = math.sin(self.frame * 0.1) * 3
@@ -451,10 +600,12 @@ class Character3D(QWidget):
             p.drawEllipse(int(cx - 25 + iris_offset), eye_y + 5, 10, 15)
             p.drawEllipse(int(cx + 15 + iris_offset), eye_y + 5, 10, 15)
             
+            # Pupil
             p.setBrush(QBrush(QColor(0, 0, 0)))
             p.drawEllipse(int(cx - 23 + iris_offset), eye_y + 8, 6, 9)
             p.drawEllipse(int(cx + 17 + iris_offset), eye_y + 8, 6, 9)
             
+            # Shine
             p.setBrush(QBrush(QColor(255, 255, 255, 200)))
             p.drawEllipse(int(cx - 21 + iris_offset), eye_y + 9, 3, 4)
             p.drawEllipse(int(cx + 19 + iris_offset), eye_y + 9, 3, 4)
@@ -491,13 +642,13 @@ class Character3D(QWidget):
         p.setBrush(QBrush(body_grad))
         p.setPen(QPen(QColor(80, 40, 120), 2))
         
-        pts = [
+        body_points = [
             QPoint(cx - 40, cy + 30),
             QPoint(cx + 40, cy + 30),
             QPoint(cx + 60, cy + 180),
             QPoint(cx - 60, cy + 180)
         ]
-        p.drawPolygon(QPolygon(pts))
+        p.drawPolygon(QPolygon(body_points))
         
         # Arms
         arm_sway = math.sin(self.frame * 0.03) * 5
@@ -505,17 +656,18 @@ class Character3D(QWidget):
         p.drawLine(cx - 40, cy + 50, int(cx - 70 + arm_sway), cy + 120)
         p.drawLine(cx + 40, cy + 50, int(cx + 70 - arm_sway), cy + 120)
         
-        # Status
+        # Status text
         p.setFont(QFont("Arial", 14, QFont.Bold))
         if self.is_listening:
             p.setPen(QColor(0, 255, 150))
-            txt = "🎤 Listening"
+            txt = "🎤 سن رہی ہوں"
         elif self.is_speaking:
             p.setPen(QColor(255, 150, 50))
-            txt = "🗣️ Speaking"
+            txt = "🗣️ بول رہی ہوں"
         else:
-            p.setPen(QColor(150, 150, 255))
-            txt = "💤 Ready"
+            p. setPen(QColor(150, 150, 255))
+            txt = "💤 تیار"
+        
         p.drawText(20, 40, txt)
 
 # ══════════════════════════════════════════════════════════════
@@ -526,566 +678,159 @@ class JannatWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         
-        print("🚀 Starting Jannat...")
+        print("🚀 جنت شروع ہو رہی ہے...")
         
         self.voice = JannatVoiceEngine()
-        self.recognizer = VoiceRecognizer()
+        self.recognizer = VoiceRecognizer(self.update_status)
         self.processor = CommandProcessor(self.voice)
+        self.version_manager = VersionManager()
         
         self.recognizer.command_received.connect(self.on_command)
         self.recognizer.status_changed.connect(self.update_status)
         self.recognizer.listening_active.connect(self.on_listen)
         
         self.init_ui()
+        self.check_updates()
         
         QTimer.singleShot(2000, self.auto_start)
     
     def init_ui(self):
-        self.setWindowTitle(f"✨ {ASSISTANT_NAME}")
-        self.setGeometry(100, 100, 900, 650)
-        
-        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
+        self.setWindowTitle(f"✨ {ASSISTANT_NAME} - AI معاون")
+        self.setGeometry(100, 100, 900, 700)
+        self.setWindowFlags(Qt. FramelessWindowHint | Qt.WindowStaysOnTopHint)
         self.setAttribute(Qt.WA_TranslucentBackground)
-
-import sys
-import os
-import threading
-import time
-import math
-from datetime import datetime
-
-import pyttsx3
-import sounddevice as sd
-import numpy as np
-import vosk
-import json
-import queue
-import zipfile
-import requests
-from pathlib import Path
-
-from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
-                             QHBoxLayout, QLabel, QPushButton, QTextEdit)
-from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QObject, QPoint
-from PyQt5.QtGui import (QFont, QColor, QPainter, QLinearGradient, 
-                        QBrush, QPen, QRadialGradient, QPolygon)
-
-# ══════════════════════════════════════════════════════════════
-#                    AUTO VOSK MODEL DOWNLOADER
-# ══════════════════════════════════════════════════════════════
-
-def download_vosk_model():
-    """
-    Automatically downloads Vosk model if missing
-    Returns: Path to model directory or None if failed
-    """
-    # Model options (try multiple mirrors)
-    models = [
-        {
-            'name': 'vosk-model-small-en-us-0.15',
-            'urls': [
-                'https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip',
-                'https://github.com/alphacep/vosk-api/releases/download/v0.3.45/vosk-model-small-en-us-0.15.zip'
-            ],
-            'size': '40MB'
-        }
-    ]
-    
-    # Check if any model exists
-    for model_info in models:
-        model_name = model_info['name']
-        model_path = Path(model_name)
         
-        if model_path.exists() and model_path.is_dir():
-            print(f"✅ Found existing model: {model_name}")
-            return str(model_path)
-    
-    # No model found, download the first one
-    print("📥 No Vosk model found. Downloading...")
-    model_info = models[0]
-    model_name = model_info['name']
-    
-    for url in model_info['urls']:
-        try:
-            print(f"🔗 Trying: {url}")
-            print(f"📦 Size: {model_info['size']} - This may take a minute...")
-            
-            # Download with progress
-            response = requests.get(url, stream=True, timeout=30)
-            
-            if response.status_code == 200:
-                zip_path = f"{model_name}.zip"
-                total_size = int(response.headers.get('content-length', 0))
-                
-                # Save zip file
-                with open(zip_path, 'wb') as f:
-                    downloaded = 0
-                    for chunk in response.iter_content(chunk_size=8192):
-                        if chunk:
-                            f.write(chunk)
-                            downloaded += len(chunk)
-                            if total_size:
-                                percent = (downloaded / total_size) * 100
-                                print(f"⏳ Downloading: {percent:.1f}%", end='\r')
-                
-                print("\n✅ Download complete!")
-                print("📂 Extracting model...")
-                
-                # Extract zip
-                with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-                    zip_ref.extractall('.')
-                
-                # Clean up zip file
-                os.remove(zip_path)
-                
-                print(f"✅ Model extracted to: {model_name}/")
-                return model_name
-            
-        except requests.exceptions.RequestException as e:
-            print(f"❌ Failed: {e}")
-            continue
-        except Exception as e:
-            print(f"❌ Error: {e}")
-            continue
-    
-    print("❌ All download attempts failed")
-    print("💡 Manual download:")
-    print("   1. Visit: https://alphacephei.com/vosk/models")
-    print("   2. Download: vosk-model-small-en-us-0.15.zip")
-    print("   3. Extract to script folder")
-    return None
-
-# ══════════════════════════════════════════════════════════════
-#                    CONFIGURATION
-# ══════════════════════════════════════════════════════════════
-
-ASSISTANT_NAME = "Jannat"
-GROQ_API_KEY = "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"
-GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
-GROQ_MODEL = "llama-3.3-70b-versatile"
-
-APPLICATIONS = {
-    'notepad': 'notepad.exe',
-    'calculator': 'calc.exe',
-    'chrome': 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-    'edge': 'msedge.exe',
-    'explorer': 'explorer.exe',
-    'paint': 'mspaint.exe',
-}
-
-# ══════════════════════════════════════════════════════════════
-#                   GROQ AI BRAIN
-# ══════════════════════════════════════════════════════════════
-
-def query_groq_ai(user_message):
-    """Query Groq API for intelligent responses"""
-    try:
-        import requests
+        # Central widget
+        central = QWidget()
+        self.setCentralWidget(central)
+        central.setStyleSheet("background:  transparent;")
         
-        response = requests.post(
-            GROQ_API_URL,
-            headers={
-                'Authorization': f'Bearer {GROQ_API_KEY}',
-                'Content-Type': 'application/json'
-            },
-            json={
-                'model': GROQ_MODEL,
-                'messages': [
-                    {'role': 'system', 'content': 'You are Jannat, a helpful female AI assistant. Respond in 1-2 sentences. Be friendly.'},
-                    {'role': 'user', 'content': user_message}
-                ],
-                'temperature': 0.7,
-                'max_tokens': 100
-            },
-            timeout=10
-        )
+        layout = QVBoxLayout(central)
         
-        if response.status_code == 200:
-            data = response.json()
-            return data['choices'][0]['message']['content']
-        return None
-            
-    except Exception as e:
-        print(f"Groq Error: {e}")
-        return None
-
-# ══════════════════════════════════════════════════════════════
-#                  VOICE ENGINE
-# ══════════════════════════════════════════════════════════════
-
-class JannatVoiceEngine:
-    def __init__(self):
-        print("🎤 Initializing Voice...")
-        self.engine = pyttsx3.init()
-        self.is_speaking = False
-        self.configure_voice()
-    
-    def configure_voice(self):
-        voices = self.engine.getProperty('voices')
-        if len(voices) > 1:
-            self.engine.setProperty('voice', voices[1].id)
-        self.engine.setProperty('rate', 160)
-        self.engine.setProperty('volume', 1.0)
-        print("✅ Voice Ready")
-    
-    def speak(self, text):
-        if self.is_speaking:
-            return
-        
-        def speak_thread():
-            self.is_speaking = True
-            try:
-                self.engine.say(text)
-                self.engine.runAndWait()
-            except:
-                pass
-            self.is_speaking = False
-        
-        threading.Thread(target=speak_thread, daemon=True).start()
-
-# ══════════════════════════════════════════════════════════════
-#                  VOICE RECOGNITION (sounddevice + Vosk)
-# ══════════════════════════════════════════════════════════════
-
-class VoiceRecognizer(QObject):
-    command_received = pyqtSignal(str)
-    status_changed = pyqtSignal(str)
-    listening_active = pyqtSignal(bool)
-    
-    def __init__(self):
-        super().__init__()
-        self.is_running = False
-        self.should_stop = False
-        self.audio_queue = queue.Queue()
-        self.model = None
-        self.recognizer = None
-        
-        # Try to load or download model
-        self.initialize_model()
-        
-        self.sample_rate = 16000
-        self.blocksize = 8000
-    
-    def initialize_model(self):
-        """Initialize Vosk model with auto-download"""
-        try:
-            # Try to find existing model
-            model_path = None
-            possible_models = [
-                'vosk-model-small-en-us-0.15',
-                'vosk-model-small-ur-0.1',
-                'vosk-model-en-us-0.22-lgraph',
-                'vosk-model-small-en-in-0.4'
-            ]
-            
-            for model_name in possible_models:
-                if Path(model_name).exists():
-                    model_path = model_name
-                    print(f"✅ Found model: {model_name}")
-                    break
-            
-            # If no model found, download it
-            if not model_path:
-                print("🔍 No Vosk model found. Starting download...")
-                model_path = download_vosk_model()
-            
-            # Load model
-            if model_path:
-                self.model = vosk.Model(model_path)
-                self.recognizer = vosk.KaldiRecognizer(self.model, 16000)
-                print("✅ Vosk Model Ready")
-            else:
-                print("❌ Could not initialize Vosk model")
-                print("⚠️ Voice recognition will be DISABLED")
-                
-        except Exception as e:
-            print(f"❌ Model initialization error: {e}")
-            print("⚠️ Voice recognition will be DISABLED")
-            self.model = None
-            self.recognizer = None
-    
-    def audio_callback(self, indata, frames, time_info, status):
-        """Callback for sounddevice stream"""
-        if status:
-            print(f"Audio status: {status}")
-        self.audio_queue.put(bytes(indata))
-    
-    def start(self):
-        if self.is_running:
-            return
-        
-        if not self.recognizer:
-            print("❌ Cannot start - No voice model loaded")
-            self.status_changed.emit("❌ Voice model missing")
-            return
-            
-        self.is_running = True
-        self.should_stop = False
-        threading.Thread(target=self._listen_loop, daemon=True).start()
-    
-    def stop(self):
-        self.should_stop = True
-        self.is_running = False
-    
-    def _listen_loop(self):
-        """Main listening loop using sounddevice"""
-        try:
-            with sd.RawInputStream(samplerate=self.sample_rate, 
-                                  blocksize=self.blocksize,
-                                  dtype='int16',
-                                  channels=1,
-                                  callback=self.audio_callback):
-                
-                print("✅ Microphone stream started")
-                
-                while not self.should_stop:
-                    try:
-                        self.listening_active.emit(True)
-                        self.status_changed.emit("🎤 Listening...")
-                        
-                        # Get audio data from queue
-                        data = self.audio_queue.get(timeout=1)
-                        
-                        # Process with Vosk
-                        if self.recognizer.AcceptWaveform(data):
-                            result = json.loads(self.recognizer.Result())
-                            text = result.get('text', '').strip()
-                            
-                            if text:
-                                self.listening_active.emit(False)
-                                self.status_changed.emit("⚙️ Processing...")
-                                self.command_received.emit(text)
-                        else:
-                            # Partial result
-                            partial = json.loads(self.recognizer.PartialResult())
-                            partial_text = partial.get('partial', '')
-                            if partial_text:
-                                self.status_changed.emit(f"🎤 {partial_text}...")
-                        
-                    except queue.Empty:
-                        continue
-                    except Exception as e:
-                        print(f"Recognition error: {e}")
-                        time.sleep(0.1)
-                        
-        except Exception as e:
-            print(f"Stream error: {e}")
-            self.status_changed.emit("❌ Microphone Error")
-        
-        print("👂 Listening stopped")
-
-# ══════════════════════════════════════════════════════════════
-#                    COMMAND PROCESSOR
-# ══════════════════════════════════════════════════════════════
-
-class CommandProcessor:
-    def __init__(self, voice):
-        self.voice = voice
-    
-    def process(self, cmd_text):
-        if not cmd_text:
-            return None
-        
-        cmd = cmd_text.lower()
-        
-        # Open app
-        if 'open' in cmd:
-            for app_name, app_path in APPLICATIONS.items():
-                if app_name in cmd:
-                    try:
-                        os.startfile(app_path)
-                        self.voice.speak(f"{app_name} کھول رہی ہوں")
-                        return {'action': 'open', 'text': f"Opened {app_name}"}
-                    except:
-                        self.voice.speak("نہیں کھل سکا")
-                        return {'action': 'error', 'text': 'Failed'}
-            
-            self.voice.speak("ایپ نہیں ملی")
-            return {'action': 'not_found', 'text': 'App not found'}
-        
-        # Time
-        elif 'time' in cmd:
-            time_str = datetime.now().strftime("%I:%M %p")
-            self.voice.speak(f"وقت ہے {time_str}")
-            return {'action': 'time', 'text': time_str}
-        
-        # Date
-        elif 'date' in cmd:
-            date_str = datetime.now().strftime("%B %d, %Y")
-            self.voice.speak(f"تاریخ ہے {date_str}")
-            return {'action': 'date', 'text': date_str}
-        
-        # Exit
-        elif any(w in cmd for w in ['exit', 'close', 'bye']):
-            self.voice.speak("خدا حافظ")
-            return {'action': 'exit', 'text': 'Goodbye'}
-        
-        # AI Query
-        else:
-            ai_response = query_groq_ai(cmd_text)
-            if ai_response:
-                self.voice.speak(ai_response)
-                return {'action': 'ai', 'text': ai_response}
-            else:
-                self.voice.speak("میں نے سنا")
-                return {'action': 'heard', 'text': f"Heard: {cmd_text}"}
-
-# ══════════════════════════════════════════════════════════════
-#          LIGHTWEIGHT 3D CHARACTER (4GB RAM OPTIMIZED)
-# ══════════════════════════════════════════════════════════════
-
-class Character3D(QWidget):
-    def __init__(self):
-        super().__init__()
-        self.is_listening = False
-        self.is_speaking = False
-        self.frame = 0
-        
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.animate)
-        self.timer.start(33)
-        
-        self.setMinimumSize(400, 500)
-    
-    def animate(self):
-        self.frame = (self.frame + 1) % 360
-        self.update()
-    
-    def set_listening(self, state):
-        self.is_listening = state
-    
-    def set_speaking(self, state):
-        self.is_speaking = state
-    
-    def paintEvent(self, event):
-        p = QPainter(self)
-        p.setRenderHint(QPainter.Antialiasing)
-        
-        w, h = self.width(), self.height()
-        cx, cy = w // 2, h // 2 + 50
-        
-        # Background
-        bg = QLinearGradient(0, 0, 0, h)
-        bg.setColorAt(0, QColor(20, 20, 40))
-        bg.setColorAt(1, QColor(10, 10, 25))
-        p.fillRect(0, 0, w, h, bg)
-        
-        # Glow
-        if self.is_listening:
-            color = QColor(0, 255, 150, 80)
-            radius = 150 + abs(math.sin(self.frame * 0.05)) * 30
-        elif self.is_speaking:
-            color = QColor(255, 150, 50, 80)
-            radius = 150 + abs(math.sin(self.frame * 0.1)) * 40
-        else:
-            color = QColor(100, 150, 255, 50)
-            radius = 150
-        
-        glow = QRadialGradient(cx, cy - 50, radius)
-        glow.setColorAt(0, color)
-        glow.setColorAt(1, QColor(0, 0, 0, 0))
-        p.setBrush(QBrush(glow))
-        p.setPen(Qt.NoPen)
-        p.drawEllipse(int(cx - radius), int(cy - 50 - radius),
-                     int(radius * 2), int(radius * 2))
-        
-        # Head
-        head_grad = QRadialGradient(cx - 10, cy - 100, 80)
-        head_grad.setColorAt(0, QColor(255, 220, 200))
-        head_grad.setColorAt(1, QColor(230, 180, 160))
-        p.setBrush(QBrush(head_grad))
-        p.setPen(QPen(QColor(200, 150, 130), 2))
-        p.drawEllipse(cx - 60, cy - 140, 120, 140)
-        
-        # Hair
-        p.setBrush(QBrush(QColor(50, 30, 20)))
-        p.setPen(QPen(QColor(50, 30, 20), 2))
-        p.drawEllipse(cx - 70, cy - 150, 140, 80)
-        
-        left_hair_x = cx - 70 + math.sin(self.frame * 0.05) * 3
-        right_hair_x = cx + 50 - math.sin(self.frame * 0.05) * 3
-        p.drawEllipse(int(left_hair_x), cy - 130, 30, 100)
-        p.drawEllipse(int(right_hair_x), cy - 130, 30, 100)
-        
-        # Eyes
-        eye_y = cy - 100
-        if self.is_speaking and (self.frame % 30) < 3:
-            p.setBrush(QBrush(QColor(80, 50, 40)))
-            p.drawEllipse(cx - 30, eye_y, 20, 5)
-            p.drawEllipse(cx + 10, eye_y, 20, 5)
-        else:
-            p.setBrush(QBrush(QColor(255, 255, 255)))
-            p.drawEllipse(cx - 30, eye_y, 20, 25)
-            p.drawEllipse(cx + 10, eye_y, 20, 25)
-            
-            iris_offset = 0
-            if self.is_listening:
-                iris_offset = math.sin(self.frame * 0.1) * 3
-            
-            p.setBrush(QBrush(QColor(100, 50, 150)))
-            p.drawEllipse(int(cx - 25 + iris_offset), eye_y + 5, 10, 15)
-            p.drawEllipse(int(cx + 15 + iris_offset), eye_y + 5, 10, 15)
-            
-            p.setBrush(QBrush(QColor(0, 0, 0)))
-            p.drawEllipse(int(cx - 23 + iris_offset), eye_y + 8, 6, 9)
-            p.drawEllipse(int(cx + 17 + iris_offset), eye_y + 8, 6, 9)
-            
-            p.setBrush(QBrush(QColor(255, 255, 255, 200)))
-            p.drawEllipse(int(cx - 21 + iris_offset), eye_y + 9, 3, 4)
-            p.drawEllipse(int(cx + 19 + iris_offset), eye_y + 9, 3, 4)
-        
-        # Nose
-        p.setPen(QPen(QColor(200, 150, 130), 2))
-        p.drawLine(cx, cy - 80, cx - 3, cy - 70)
-        
-        # Mouth
-        mouth_y = cy - 50
-        if self.is_speaking:
-            mouth_h = abs(math.sin(self.frame * 0.15)) * 15 + 5
-            p.setBrush(QBrush(QColor(180, 80, 80)))
-            p.setPen(QPen(QColor(160, 60, 60), 2))
-            p.drawEllipse(cx - 15, int(mouth_y), 30, int(mouth_h))
-        else:
-            p.setBrush(Qt.NoBrush)
-            p.setPen(QPen(QColor(200, 100, 100), 3))
-            p.drawArc(cx - 20, mouth_y, 40, 25, 0, -180 * 16)
-        
-        # Neck
-        neck_grad = QLinearGradient(cx - 15, cy, cx + 15, cy)
-        neck_grad.setColorAt(0, QColor(230, 180, 160))
-        neck_grad.setColorAt(0.5, QColor(255, 210, 190))
-        neck_grad.setColorAt(1, QColor(230, 180, 160))
-        p.setBrush(QBrush(neck_grad))
-        p.setPen(QPen(QColor(200, 150, 130), 1))
-        p.drawRect(cx - 15, cy - 10, 30, 40)
-        
-        # Body
-        body_grad = QLinearGradient(cx, cy + 30, cx, cy + 180)
-        body_grad.setColorAt(0, QColor(150, 100, 200))
-        body_grad.setColorAt(1, QColor(100, 50, 150))
-        p.setBrush(QBrush(body_grad))
-        p.setPen(QPen(QColor(80, 40, 120), 2))
-        
-        pts = [
-            QPoint(cx - 40, cy + 30),
-            QPoint(cx + 40, cy + 30),
-            QPoint(cx + 60, cy + 180),
-            QPoint(cx - 60, cy + 180)
-        ]
-        p.drawPolygon(QPolygon(pts))
-        
-        # Arms
-        arm_sway = math.sin(self.frame * 0.03) * 5
-        p.setPen(QPen(QColor(255, 200, 180), 12, Qt.SolidLine, Qt.RoundCap))
-        p.drawLine(cx - 40, cy + 50, int(cx - 70 + arm_sway), cy + 120)
-        p.drawLine(cx + 40, cy + 50, int(cx + 70 - arm_sway), cy + 120)
+        # Character
+        self.character = Character3D()
+        layout.addWidget(self.character)
         
         # Status
-        p.setFont(QFont("Arial", 14, QFont.Bold))
-        if self.is_listening:
-            p.setPen(QColor(0, 255, 150))
-            txt = "🎤 Listening"
-        elif self.is_speaking:
-            p.setPen(QColor(255, 150, 50))
-            txt = "🗣️ Speaking"
-        e
+        self.status_label = QLabel("🔄 شروع ہو رہا ہے...")
+        self.status_label.setStyleSheet("""
+            color: #00FF96;
+            font-size: 14px;
+            font-weight:  bold;
+            text-align: center;
+        """)
+        layout.addWidget(self.status_label)
+        
+        # Buttons
+        btn_layout = QHBoxLayout()
+        
+        self.start_btn = QPushButton("🎤 شروع کریں")
+        self.start_btn.setStyleSheet("""
+            QPushButton {
+                background:  #1a1a2e;
+                color: #00FF96;
+                border: 2px solid #00FF96;
+                border-radius: 10px;
+                padding: 10px 20px;
+                font-weight: bold;
+                font-size: 12px;
+            }
+            QPushButton:hover {
+                background: #00FF96;
+                color: #1a1a2e;
+            }
+        """)
+        self.start_btn.clicked.connect(self. start_listening)
+        
+        self.stop_btn = QPushButton("⏹️ روکیں")
+        self.stop_btn.setStyleSheet(self.start_btn.styleSheet())
+        self.stop_btn. clicked.connect(self.stop_listening)
+        
+        self. update_btn = QPushButton("📦 اپ ڈیٹ")
+        self.update_btn. setStyleSheet(self.start_btn.styleSheet())
+        self.update_btn. clicked.connect(self.manual_update)
+        
+        btn_layout.addWidget(self. start_btn)
+        btn_layout.addWidget(self.stop_btn)
+        btn_layout.addWidget(self.update_btn)
+        layout.addLayout(btn_layout)
+        
+        # Progress bar
+        self.progress = QProgressBar()
+        self.progress.setStyleSheet("""
+            QProgressBar {
+                background: #1a1a2e;
+                border: 2px solid #00FF96;
+                border-radius: 5px;
+            }
+            QProgressBar::chunk {
+                background: #00FF96;
+            }
+        """)
+        self.progress.setVisible(False)
+        layout.addWidget(self.progress)
+        
+        # Text output
+        self.output_text = QTextEdit()
+        self.output_text.setReadOnly(True)
+        self.output_text.setMaximumHeight(150)
+        self.output_text.setStyleSheet("""
+            QTextEdit {
+                background: rgba(26, 26, 46, 200);
+                color: #00FF96;
+                border: 2px solid #00FF96;
+                border-radius: 10px;
+                font-family: 'Courier New';
+                font-size: 11px;
+            }
+        """)
+        layout.addWidget(self.output_text)
+        
+        self.show()
+    
+    def update_status(self, text):
+        self.status_label.setText(text)
+        self.output_text.append(f"[{datetime.now().strftime('%H:%M:%S')}] {text}")
+    
+    def on_listen(self, active):
+        self.character.set_listening(active)
+    
+    def on_command(self, command):
+        self.output_text.append(f"👂 سنا: {command}")
+        result = self.processor.process(command)
+        if result and result['action'] == 'exit':
+            QTimer.singleShot(1000, self.close)
+    
+    def start_listening(self):
+        self.recognizer.start()
+        self.update_status("🎤 سن رہی ہوں...")
+    
+    def stop_listening(self):
+        self.recognizer. stop()
+        self.update_status("⏹️ رک گئی")
+    
+    def auto_start(self):
+        self.voice.speak(URDU_RESPONSES['greeting'])
+        self.start_listening()
+    
+    def check_updates(self):
+        if self.version_manager.check_for_updates():
+            self.update_status("📦 نیا ورژن دستیاب ہے!")
+    
+    def manual_update(self):
+        self.progress.setVisible(True)
+        self.update_btn.setEnabled(False)
+        self.version_manager.auto_update(self.update_status)
+    
+    def closeEvent(self, event):
+        self.recognizer.stop()
+        event.accept()
+
+# ══════════════════════════════════════════════════════════════
+#                        MAIN ENTRY
+# ══════════════════════════════════════════════════════════════
+
+if __name__ == '__main__':
+    app = QApplication(sys.argv)
+    window = JannatWindow()
+    sys.exit(app.exec_())
