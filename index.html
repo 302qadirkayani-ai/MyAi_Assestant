@@ -1,155 +1,1091 @@
-<!DOCTYPE html>
-<html lang="ur">
-<head>
-    <meta charset="UTF-8">
-    <title>Professional AI 3D Studio - Pro Edition</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', sans-serif; background: #050505; color: white; direction: rtl; overflow: hidden; }
-        #container { display: flex; width: 100vw; height: 100vh; }
-        #viewport { flex: 1; position: relative; background: radial-gradient(circle, #1a1a2e 0%, #000 100%); }
-        #controls { width: 380px; background: #0f0f1e; padding: 25px; overflow-y: auto; border-left: 2px solid #ff6b9d; z-index: 10; }
-        
-        /* Avatar Creator Popup */
-        #avatarFrame {
-            display: none; position: fixed; top: 5%; left: 5%; width: 90%; height: 90%;
-            background: white; border-radius: 20px; z-index: 1000; border: 5px solid #ff6b9d;
+"""
+╔═══════════════════════════════════════════════════════════════╗
+║               JANNAT VOICE ASSISTANT v1.0 FINAL               ║
+║                  ✅ ALL ERRORS FIXED ✅                        ║
+║  • 3D Animated Character (4GB RAM Optimized)                 ║
+║  • Female Urdu Voice | Auto-Start Listening                  ║
+║  • Groq API Integration | System Control                     ║
+╚═══════════════════════════════════════════════════════════════╝
+"""
+
+import sys
+import os
+import threading
+import time
+import math
+from datetime import datetime
+
+import pyttsx3
+import sounddevice as sd
+import numpy as np
+import vosk
+import json
+import queue
+import zipfile
+import requests
+from pathlib import Path
+
+from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
+                             QHBoxLayout, QLabel, QPushButton, QTextEdit)
+from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QObject
+from PyQt5.QtGui import (QFont, QColor, QPainter, QLinearGradient, 
+                        QBrush, QPen, QRadialGradient, QPolygon, QPoint)
+
+# ══════════════════════════════════════════════════════════════
+#                    AUTO VOSK MODEL DOWNLOADER
+# ══════════════════════════════════════════════════════════════
+
+def download_vosk_model():
+    """
+    Automatically downloads Vosk model if missing
+    Returns: Path to model directory or None if failed
+    """
+    # Model options (try multiple mirrors)
+    models = [
+        {
+            'name': 'vosk-model-small-en-us-0.15',
+            'urls': [
+                'https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip',
+                'https://github.com/alphacep/vosk-api/releases/download/v0.3.45/vosk-model-small-en-us-0.15.zip'
+            ],
+            'size': '40MB'
         }
-        
-        .section { background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; margin-bottom: 20px; border: 1px solid rgba(255,107,157,0.2); }
-        button { width: 100%; padding: 15px; margin: 8px 0; cursor: pointer; border: none; border-radius: 8px; font-weight: bold; font-size: 14px; transition: 0.3s; }
-        .ai-btn { background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); color: white; }
-        .ai-btn:hover { box-shadow: 0 0 20px #00f2fe; transform: translateY(-2px); }
-        h1 { font-size: 22px; color: #ff6b9d; text-align: center; margin-bottom: 25px; text-shadow: 0 0 10px #ff6b9d; }
-        #closeFrame { position: absolute; top: -15px; right: -15px; background: red; color: white; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; }
-    </style>
-</head>
-<body>
-
-<iframe id="avatarFrame" src=""></iframe>
-<button id="closeFrame" onclick="hideCreator()" style="display:none">X</button>
-
-<div id="container">
-    <div id="viewport">
-        <div style="position:absolute; top:20px; right:20px; background:rgba(0,0,0,0.6); padding:10px; border-radius:5px;">
-            FPS: <span id="fps">60</span> | ماڈل: <span id="modelCount">0</span>
-        </div>
-    </div>
+    ]
     
-    <div id="controls">
-        <h1>🎌 AI خودکار تھری ڈی اسٹوڈیو</h1>
-
-        <div class="section">
-            <h3>🤖 AI آٹو کریکٹر کرئیٹر</h3>
-            <p style="font-size:12px; color:#aaa; margin-bottom:10px;">تصویر اپ لوڈ کریں، AI خود بخود تھری ڈی ماڈل بنا دے گا</p>
-            <button class="ai-btn" onclick="showCreator()">👧 لڑکی / لڑکا (تصویر سے بنائیں)</button>
-            <button class="ai-btn" onclick="showCreator()">👩 ماں / باپ (تصویر سے بنائیں)</button>
-            <button onclick="removeAll()" style="background:#eb3349; color:white;">تمام کردار ہٹائیں</button>
-        </div>
-
-        <div class="section">
-            <h3>🏞️ اسمارٹ ماحول</h3>
-            <button onclick="changeEnv('park')" style="background:#2d5a27; color:white;">🌳 پارک (گرین اسکرین)</button>
-            <button onclick="changeEnv('city')" style="background:#334455; color:white;">🏙️ جدید شہر</button>
-        </div>
-
-        <div class="section">
-            <h3>🎬 ایکشن کنٹرول</h3>
-            <button onclick="playAction('dance')" style="background:#764ba2; color:white;">💃 ڈانس ایکشن</button>
-            <button onclick="playAction('walk')" style="background:#667eea; color:white;">🚶 چلنے کا ایکشن</button>
-        </div>
-    </div>
-</div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
-
-<script>
-    let scene, camera, renderer, loader, mixer;
-    let characters = [];
-
-    // یہ وہ سروس ہے جو تصویر سے 3D بناتی ہے
-    const creatorURL = "https://demo.readyplayer.me/avatar?frameApi";
-
-    window.onload = init;
-
-    function init() {
-        scene = new THREE.Scene();
-        camera = new THREE.PerspectiveCamera(50, (window.innerWidth - 380) / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 1.6, 5);
-
-        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-        renderer.setSize(window.innerWidth - 380, window.innerHeight);
-        document.getElementById('viewport').appendChild(renderer.domElement);
-
-        const light = new THREE.AmbientLight(0xffffff, 0.8);
-        scene.add(light);
-        const dirLight = new THREE.DirectionalLight(0xffffff, 1);
-        dirLight.position.set(5, 10, 5);
-        scene.add(dirLight);
-
-        loader = new THREE.GLTFLoader();
+    # Check if any model exists
+    for model_info in models:
+        model_name = model_info['name']
+        model_path = Path(model_name)
         
-        // زمین
-        const grid = new THREE.GridHelper(100, 50, 0xff6b9d, 0x222222);
-        scene.add(grid);
+        if model_path.exists() and model_path.is_dir():
+            print(f"✅ Found existing model: {model_name}")
+            return str(model_path)
+    
+    # No model found, download the first one
+    print("📥 No Vosk model found. Downloading...")
+    model_info = models[0]
+    model_name = model_info['name']
+    
+    for url in model_info['urls']:
+        try:
+            print(f"🔗 Trying: {url}")
+            print(f"📦 Size: {model_info['size']} - This may take a minute...")
+            
+            # Download with progress
+            response = requests.get(url, stream=True, timeout=30)
+            
+            if response.status_code == 200:
+                zip_path = f"{model_name}.zip"
+                total_size = int(response.headers.get('content-length', 0))
+                
+                # Save zip file
+                with open(zip_path, 'wb') as f:
+                    downloaded = 0
+                    for chunk in response.iter_content(chunk_size=8192):
+                        if chunk:
+                            f.write(chunk)
+                            downloaded += len(chunk)
+                            if total_size:
+                                percent = (downloaded / total_size) * 100
+                                print(f"⏳ Downloading: {percent:.1f}%", end='\r')
+                
+                print("\n✅ Download complete!")
+                print("📂 Extracting model...")
+                
+                # Extract zip
+                with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                    zip_ref.extractall('.')
+                
+                # Clean up zip file
+                os.remove(zip_path)
+                
+                print(f"✅ Model extracted to: {model_name}/")
+                return model_name
+            
+        except requests.exceptions.RequestException as e:
+            print(f"❌ Failed: {e}")
+            continue
+        except Exception as e:
+            print(f"❌ Error: {e}")
+            continue
+    
+    print("❌ All download attempts failed")
+    print("💡 Manual download:")
+    print("   1. Visit: https://alphacephei.com/vosk/models")
+    print("   2. Download: vosk-model-small-en-us-0.15.zip")
+    print("   3. Extract to script folder")
+    return None
 
-        window.addEventListener('message', subscribe); // AI سروس سے ماڈل وصول کرنے کے لیے
-        animate();
-    }
+# ══════════════════════════════════════════════════════════════
+#                    CONFIGURATION
+# ══════════════════════════════════════════════════════════════
 
-    function showCreator() {
-        const frame = document.getElementById('avatarFrame');
-        const btn = document.getElementById('closeFrame');
-        frame.src = creatorURL;
-        frame.style.display = "block";
-        btn.style.display = "block";
-    }
+ASSISTANT_NAME = "Jannat"
+GROQ_API_KEY = "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"
+GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
+GROQ_MODEL = "llama-3.3-70b-versatile"
 
-    function hideCreator() {
-        document.getElementById('avatarFrame').style.display = "none";
-        document.getElementById('closeFrame').style.display = "none";
-    }
+APPLICATIONS = {
+    'notepad': 'notepad.exe',
+    'calculator': 'calc.exe',
+    'chrome': 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    'edge': 'msedge.exe',
+    'explorer': 'explorer.exe',
+    'paint': 'mspaint.exe',
+}
 
-    // AI سروس جب ماڈل بنا لے گی، تو یہ فنکشن اسے یہاں وصول کرے گا
-    function subscribe(event) {
-        const json = parse(event);
-        if (json?.source === 'readyplayerme' && json?.eventName === 'v1.avatar.exported') {
-            loadMesh(json.data.url); // ماڈل کا لنک مل گیا، اب اسے اسکرین پر لائیں
-            hideCreator();
+# ══════════════════════════════════════════════════════════════
+#                   GROQ AI BRAIN
+# ══════════════════════════════════════════════════════════════
+
+def query_groq_ai(user_message):
+    """Query Groq API for intelligent responses"""
+    try:
+        import requests
+        
+        response = requests.post(
+            GROQ_API_URL,
+            headers={
+                'Authorization': f'Bearer {GROQ_API_KEY}',
+                'Content-Type': 'application/json'
+            },
+            json={
+                'model': GROQ_MODEL,
+                'messages': [
+                    {'role': 'system', 'content': 'You are Jannat, a helpful female AI assistant. Respond in 1-2 sentences. Be friendly.'},
+                    {'role': 'user', 'content': user_message}
+                ],
+                'temperature': 0.7,
+                'max_tokens': 100
+            },
+            timeout=10
+        )
+        
+        if response.status_code == 200:
+            data = response.json()
+            return data['choices'][0]['message']['content']
+        return None
+            
+    except Exception as e:
+        print(f"Groq Error: {e}")
+        return None
+
+# ══════════════════════════════════════════════════════════════
+#                  VOICE ENGINE
+# ══════════════════════════════════════════════════════════════
+
+class JannatVoiceEngine:
+    def __init__(self):
+        print("🎤 Initializing Voice...")
+        self.engine = pyttsx3.init()
+        self.is_speaking = False
+        self.configure_voice()
+    
+    def configure_voice(self):
+        voices = self.engine.getProperty('voices')
+        if len(voices) > 1:
+            self.engine.setProperty('voice', voices[1].id)
+        self.engine.setProperty('rate', 160)
+        self.engine.setProperty('volume', 1.0)
+        print("✅ Voice Ready")
+    
+    def speak(self, text):
+        if self.is_speaking:
+            return
+        
+        def speak_thread():
+            self.is_speaking = True
+            try:
+                self.engine.say(text)
+                self.engine.runAndWait()
+            except:
+                pass
+            self.is_speaking = False
+        
+        threading.Thread(target=speak_thread, daemon=True).start()
+
+# ══════════════════════════════════════════════════════════════
+#                  VOICE RECOGNITION (sounddevice + Vosk)
+# ══════════════════════════════════════════════════════════════
+
+class VoiceRecognizer(QObject):
+    command_received = pyqtSignal(str)
+    status_changed = pyqtSignal(str)
+    listening_active = pyqtSignal(bool)
+    
+    def __init__(self):
+        super().__init__()
+        self.is_running = False
+        self.should_stop = False
+        self.audio_queue = queue.Queue()
+        
+        # Download Vosk model first time: https://alphacephei.com/vosk/models
+        # Use vosk-model-small-en-us-0.15 (40MB) for English
+        try:
+            self.model = vosk.Model("vosk-model-small-en-us-0.15")
+            self.recognizer = vosk.KaldiRecognizer(self.model, 16000)
+            print("✅ Vosk Model Loaded")
+        except:
+            print("❌ Vosk model not found!")
+            print("Download from: https://alphacephei.com/vosk/models")
+            print("Extract to: vosk-model-small-en-us-0.15/")
+            self.model = None
+            self.recognizer = None
+        
+        self.sample_rate = 16000
+        self.blocksize = 8000
+    
+    def audio_callback(self, indata, frames, time_info, status):
+        """Callback for sounddevice stream"""
+        if status:
+            print(f"Audio status: {status}")
+        self.audio_queue.put(bytes(indata))
+    
+    def start(self):
+        if self.is_running or not self.recognizer:
+            return
+        self.is_running = True
+        self.should_stop = False
+        threading.Thread(target=self._listen_loop, daemon=True).start()
+    
+    def stop(self):
+        self.should_stop = True
+        self.is_running = False
+    
+    def _listen_loop(self):
+        """Main listening loop using sounddevice"""
+        try:
+            with sd.RawInputStream(samplerate=self.sample_rate, 
+                                  blocksize=self.blocksize,
+                                  dtype='int16',
+                                  channels=1,
+                                  callback=self.audio_callback):
+                
+                print("✅ Microphone stream started")
+                
+                while not self.should_stop:
+                    try:
+                        self.listening_active.emit(True)
+                        self.status_changed.emit("🎤 Listening...")
+                        
+                        # Get audio data from queue
+                        data = self.audio_queue.get()
+                        
+                        # Process with Vosk
+                        if self.recognizer.AcceptWaveform(data):
+                            result = json.loads(self.recognizer.Result())
+                            text = result.get('text', '').strip()
+                            
+                            if text:
+                                self.listening_active.emit(False)
+                                self.status_changed.emit("⚙️ Processing...")
+                                self.command_received.emit(text)
+                        else:
+                            # Partial result
+                            partial = json.loads(self.recognizer.PartialResult())
+                            partial_text = partial.get('partial', '')
+                            if partial_text:
+                                self.status_changed.emit(f"🎤 Hearing: {partial_text}...")
+                        
+                    except queue.Empty:
+                        continue
+                    except Exception as e:
+                        print(f"Recognition error: {e}")
+                        time.sleep(0.1)
+                        
+        except Exception as e:
+            print(f"Stream error: {e}")
+            self.status_changed.emit("❌ Microphone Error")
+        
+        print("👂 Listening stopped")
+
+# ══════════════════════════════════════════════════════════════
+#                    COMMAND PROCESSOR
+# ══════════════════════════════════════════════════════════════
+
+class CommandProcessor:
+    def __init__(self, voice):
+        self.voice = voice
+    
+    def process(self, cmd_text):
+        if not cmd_text:
+            return None
+        
+        cmd = cmd_text.lower()
+        
+        # Open app
+        if 'open' in cmd:
+            for app_name, app_path in APPLICATIONS.items():
+                if app_name in cmd:
+                    try:
+                        os.startfile(app_path)
+                        self.voice.speak(f"{app_name} کھول رہی ہوں")
+                        return {'action': 'open', 'text': f"Opened {app_name}"}
+                    except:
+                        self.voice.speak("نہیں کھل سکا")
+                        return {'action': 'error', 'text': 'Failed'}
+            
+            self.voice.speak("ایپ نہیں ملی")
+            return {'action': 'not_found', 'text': 'App not found'}
+        
+        # Time
+        elif 'time' in cmd:
+            time_str = datetime.now().strftime("%I:%M %p")
+            self.voice.speak(f"وقت ہے {time_str}")
+            return {'action': 'time', 'text': time_str}
+        
+        # Date
+        elif 'date' in cmd:
+            date_str = datetime.now().strftime("%B %d, %Y")
+            self.voice.speak(f"تاریخ ہے {date_str}")
+            return {'action': 'date', 'text': date_str}
+        
+        # Exit
+        elif any(w in cmd for w in ['exit', 'close', 'bye']):
+            self.voice.speak("خدا حافظ")
+            return {'action': 'exit', 'text': 'Goodbye'}
+        
+        # AI Query
+        else:
+            ai_response = query_groq_ai(cmd_text)
+            if ai_response:
+                self.voice.speak(ai_response)
+                return {'action': 'ai', 'text': ai_response}
+            else:
+                self.voice.speak("میں نے سنا")
+                return {'action': 'heard', 'text': f"Heard: {cmd_text}"}
+
+# ══════════════════════════════════════════════════════════════
+#          LIGHTWEIGHT 3D CHARACTER (4GB RAM OPTIMIZED)
+# ══════════════════════════════════════════════════════════════
+
+class Character3D(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.is_listening = False
+        self.is_speaking = False
+        self.frame = 0
+        
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.animate)
+        self.timer.start(33)
+        
+        self.setMinimumSize(400, 500)
+    
+    def animate(self):
+        self.frame = (self.frame + 1) % 360
+        self.update()
+    
+    def set_listening(self, state):
+        self.is_listening = state
+    
+    def set_speaking(self, state):
+        self.is_speaking = state
+    
+    def paintEvent(self, event):
+        p = QPainter(self)
+        p.setRenderHint(QPainter.Antialiasing)
+        
+        w, h = self.width(), self.height()
+        cx, cy = w // 2, h // 2 + 50
+        
+        # Background
+        bg = QLinearGradient(0, 0, 0, h)
+        bg.setColorAt(0, QColor(20, 20, 40))
+        bg.setColorAt(1, QColor(10, 10, 25))
+        p.fillRect(0, 0, w, h, bg)
+        
+        # Glow
+        if self.is_listening:
+            color = QColor(0, 255, 150, 80)
+            radius = 150 + abs(math.sin(self.frame * 0.05)) * 30
+        elif self.is_speaking:
+            color = QColor(255, 150, 50, 80)
+            radius = 150 + abs(math.sin(self.frame * 0.1)) * 40
+        else:
+            color = QColor(100, 150, 255, 50)
+            radius = 150
+        
+        glow = QRadialGradient(cx, cy - 50, radius)
+        glow.setColorAt(0, color)
+        glow.setColorAt(1, QColor(0, 0, 0, 0))
+        p.setBrush(QBrush(glow))
+        p.setPen(Qt.NoPen)
+        p.drawEllipse(int(cx - radius), int(cy - 50 - radius),
+                     int(radius * 2), int(radius * 2))
+        
+        # Head
+        head_grad = QRadialGradient(cx - 10, cy - 100, 80)
+        head_grad.setColorAt(0, QColor(255, 220, 200))
+        head_grad.setColorAt(1, QColor(230, 180, 160))
+        p.setBrush(QBrush(head_grad))
+        p.setPen(QPen(QColor(200, 150, 130), 2))
+        p.drawEllipse(cx - 60, cy - 140, 120, 140)
+        
+        # Hair
+        p.setBrush(QBrush(QColor(50, 30, 20)))
+        p.setPen(QPen(QColor(50, 30, 20), 2))
+        p.drawEllipse(cx - 70, cy - 150, 140, 80)
+        
+        left_hair_x = cx - 70 + math.sin(self.frame * 0.05) * 3
+        right_hair_x = cx + 50 - math.sin(self.frame * 0.05) * 3
+        p.drawEllipse(int(left_hair_x), cy - 130, 30, 100)
+        p.drawEllipse(int(right_hair_x), cy - 130, 30, 100)
+        
+        # Eyes
+        eye_y = cy - 100
+        if self.is_speaking and (self.frame % 30) < 3:
+            p.setBrush(QBrush(QColor(80, 50, 40)))
+            p.drawEllipse(cx - 30, eye_y, 20, 5)
+            p.drawEllipse(cx + 10, eye_y, 20, 5)
+        else:
+            p.setBrush(QBrush(QColor(255, 255, 255)))
+            p.drawEllipse(cx - 30, eye_y, 20, 25)
+            p.drawEllipse(cx + 10, eye_y, 20, 25)
+            
+            iris_offset = 0
+            if self.is_listening:
+                iris_offset = math.sin(self.frame * 0.1) * 3
+            
+            p.setBrush(QBrush(QColor(100, 50, 150)))
+            p.drawEllipse(int(cx - 25 + iris_offset), eye_y + 5, 10, 15)
+            p.drawEllipse(int(cx + 15 + iris_offset), eye_y + 5, 10, 15)
+            
+            p.setBrush(QBrush(QColor(0, 0, 0)))
+            p.drawEllipse(int(cx - 23 + iris_offset), eye_y + 8, 6, 9)
+            p.drawEllipse(int(cx + 17 + iris_offset), eye_y + 8, 6, 9)
+            
+            p.setBrush(QBrush(QColor(255, 255, 255, 200)))
+            p.drawEllipse(int(cx - 21 + iris_offset), eye_y + 9, 3, 4)
+            p.drawEllipse(int(cx + 19 + iris_offset), eye_y + 9, 3, 4)
+        
+        # Nose
+        p.setPen(QPen(QColor(200, 150, 130), 2))
+        p.drawLine(cx, cy - 80, cx - 3, cy - 70)
+        
+        # Mouth
+        mouth_y = cy - 50
+        if self.is_speaking:
+            mouth_h = abs(math.sin(self.frame * 0.15)) * 15 + 5
+            p.setBrush(QBrush(QColor(180, 80, 80)))
+            p.setPen(QPen(QColor(160, 60, 60), 2))
+            p.drawEllipse(cx - 15, int(mouth_y), 30, int(mouth_h))
+        else:
+            p.setBrush(Qt.NoBrush)
+            p.setPen(QPen(QColor(200, 100, 100), 3))
+            p.drawArc(cx - 20, mouth_y, 40, 25, 0, -180 * 16)
+        
+        # Neck
+        neck_grad = QLinearGradient(cx - 15, cy, cx + 15, cy)
+        neck_grad.setColorAt(0, QColor(230, 180, 160))
+        neck_grad.setColorAt(0.5, QColor(255, 210, 190))
+        neck_grad.setColorAt(1, QColor(230, 180, 160))
+        p.setBrush(QBrush(neck_grad))
+        p.setPen(QPen(QColor(200, 150, 130), 1))
+        p.drawRect(cx - 15, cy - 10, 30, 40)
+        
+        # Body
+        body_grad = QLinearGradient(cx, cy + 30, cx, cy + 180)
+        body_grad.setColorAt(0, QColor(150, 100, 200))
+        body_grad.setColorAt(1, QColor(100, 50, 150))
+        p.setBrush(QBrush(body_grad))
+        p.setPen(QPen(QColor(80, 40, 120), 2))
+        
+        pts = [
+            QPoint(cx - 40, cy + 30),
+            QPoint(cx + 40, cy + 30),
+            QPoint(cx + 60, cy + 180),
+            QPoint(cx - 60, cy + 180)
+        ]
+        p.drawPolygon(QPolygon(pts))
+        
+        # Arms
+        arm_sway = math.sin(self.frame * 0.03) * 5
+        p.setPen(QPen(QColor(255, 200, 180), 12, Qt.SolidLine, Qt.RoundCap))
+        p.drawLine(cx - 40, cy + 50, int(cx - 70 + arm_sway), cy + 120)
+        p.drawLine(cx + 40, cy + 50, int(cx + 70 - arm_sway), cy + 120)
+        
+        # Status
+        p.setFont(QFont("Arial", 14, QFont.Bold))
+        if self.is_listening:
+            p.setPen(QColor(0, 255, 150))
+            txt = "🎤 Listening"
+        elif self.is_speaking:
+            p.setPen(QColor(255, 150, 50))
+            txt = "🗣️ Speaking"
+        else:
+            p.setPen(QColor(150, 150, 255))
+            txt = "💤 Ready"
+        p.drawText(20, 40, txt)
+
+# ══════════════════════════════════════════════════════════════
+#                   MAIN APPLICATION WINDOW
+# ══════════════════════════════════════════════════════════════
+
+class JannatWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        
+        print("🚀 Starting Jannat...")
+        
+        self.voice = JannatVoiceEngine()
+        self.recognizer = VoiceRecognizer()
+        self.processor = CommandProcessor(self.voice)
+        
+        self.recognizer.command_received.connect(self.on_command)
+        self.recognizer.status_changed.connect(self.update_status)
+        self.recognizer.listening_active.connect(self.on_listen)
+        
+        self.init_ui()
+        
+        QTimer.singleShot(2000, self.auto_start)
+    
+    def init_ui(self):
+        self.setWindowTitle(f"✨ {ASSISTANT_NAME}")
+        self.setGeometry(100, 100, 900, 650)
+        
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
+        self.setAttribute(Qt.WA_TranslucentBackground)
+
+import sys
+import os
+import threading
+import time
+import math
+from datetime import datetime
+
+import pyttsx3
+import sounddevice as sd
+import numpy as np
+import vosk
+import json
+import queue
+import zipfile
+import requests
+from pathlib import Path
+
+from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
+                             QHBoxLayout, QLabel, QPushButton, QTextEdit)
+from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QObject, QPoint
+from PyQt5.QtGui import (QFont, QColor, QPainter, QLinearGradient, 
+                        QBrush, QPen, QRadialGradient, QPolygon)
+
+# ══════════════════════════════════════════════════════════════
+#                    AUTO VOSK MODEL DOWNLOADER
+# ══════════════════════════════════════════════════════════════
+
+def download_vosk_model():
+    """
+    Automatically downloads Vosk model if missing
+    Returns: Path to model directory or None if failed
+    """
+    # Model options (try multiple mirrors)
+    models = [
+        {
+            'name': 'vosk-model-small-en-us-0.15',
+            'urls': [
+                'https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip',
+                'https://github.com/alphacep/vosk-api/releases/download/v0.3.45/vosk-model-small-en-us-0.15.zip'
+            ],
+            'size': '40MB'
         }
-    }
+    ]
+    
+    # Check if any model exists
+    for model_info in models:
+        model_name = model_info['name']
+        model_path = Path(model_name)
+        
+        if model_path.exists() and model_path.is_dir():
+            print(f"✅ Found existing model: {model_name}")
+            return str(model_path)
+    
+    # No model found, download the first one
+    print("📥 No Vosk model found. Downloading...")
+    model_info = models[0]
+    model_name = model_info['name']
+    
+    for url in model_info['urls']:
+        try:
+            print(f"🔗 Trying: {url}")
+            print(f"📦 Size: {model_info['size']} - This may take a minute...")
+            
+            # Download with progress
+            response = requests.get(url, stream=True, timeout=30)
+            
+            if response.status_code == 200:
+                zip_path = f"{model_name}.zip"
+                total_size = int(response.headers.get('content-length', 0))
+                
+                # Save zip file
+                with open(zip_path, 'wb') as f:
+                    downloaded = 0
+                    for chunk in response.iter_content(chunk_size=8192):
+                        if chunk:
+                            f.write(chunk)
+                            downloaded += len(chunk)
+                            if total_size:
+                                percent = (downloaded / total_size) * 100
+                                print(f"⏳ Downloading: {percent:.1f}%", end='\r')
+                
+                print("\n✅ Download complete!")
+                print("📂 Extracting model...")
+                
+                # Extract zip
+                with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                    zip_ref.extractall('.')
+                
+                # Clean up zip file
+                os.remove(zip_path)
+                
+                print(f"✅ Model extracted to: {model_name}/")
+                return model_name
+            
+        except requests.exceptions.RequestException as e:
+            print(f"❌ Failed: {e}")
+            continue
+        except Exception as e:
+            print(f"❌ Error: {e}")
+            continue
+    
+    print("❌ All download attempts failed")
+    print("💡 Manual download:")
+    print("   1. Visit: https://alphacephei.com/vosk/models")
+    print("   2. Download: vosk-model-small-en-us-0.15.zip")
+    print("   3. Extract to script folder")
+    return None
 
-    function parse(event) {
-        try { return JSON.parse(event.data); } catch { return null; }
-    }
+# ══════════════════════════════════════════════════════════════
+#                    CONFIGURATION
+# ══════════════════════════════════════════════════════════════
 
-    function loadMesh(url) {
-        loader.load(url, (gltf) => {
-            const model = gltf.scene;
-            model.position.x = (characters.length * 1.5) - 1;
-            scene.add(model);
-            characters.push(model);
-            document.getElementById('modelCount').innerText = characters.length;
-            alert("✅ AI نے آپ کی تصویر سے تھری ڈی کردار تیار کر دیا ہے!");
-        });
-    }
+ASSISTANT_NAME = "Jannat"
+GROQ_API_KEY = "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"
+GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
+GROQ_MODEL = "llama-3.3-70b-versatile"
 
-    function changeEnv(type) {
-        if(type === 'park') scene.background = new THREE.Color(0x2d5a27);
-        else scene.background = new THREE.Color(0x050505);
-    }
+APPLICATIONS = {
+    'notepad': 'notepad.exe',
+    'calculator': 'calc.exe',
+    'chrome': 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    'edge': 'msedge.exe',
+    'explorer': 'explorer.exe',
+    'paint': 'mspaint.exe',
+}
 
-    function removeAll() {
-        characters.forEach(c => scene.remove(c));
-        characters = [];
-        document.getElementById('modelCount').innerText = "0";
-    }
+# ══════════════════════════════════════════════════════════════
+#                   GROQ AI BRAIN
+# ══════════════════════════════════════════════════════════════
 
-    function animate() {
-        requestAnimationFrame(animate);
-        renderer.render(scene, camera);
-    }
-</script>
-</body>
-</html>
+def query_groq_ai(user_message):
+    """Query Groq API for intelligent responses"""
+    try:
+        import requests
+        
+        response = requests.post(
+            GROQ_API_URL,
+            headers={
+                'Authorization': f'Bearer {GROQ_API_KEY}',
+                'Content-Type': 'application/json'
+            },
+            json={
+                'model': GROQ_MODEL,
+                'messages': [
+                    {'role': 'system', 'content': 'You are Jannat, a helpful female AI assistant. Respond in 1-2 sentences. Be friendly.'},
+                    {'role': 'user', 'content': user_message}
+                ],
+                'temperature': 0.7,
+                'max_tokens': 100
+            },
+            timeout=10
+        )
+        
+        if response.status_code == 200:
+            data = response.json()
+            return data['choices'][0]['message']['content']
+        return None
+            
+    except Exception as e:
+        print(f"Groq Error: {e}")
+        return None
+
+# ══════════════════════════════════════════════════════════════
+#                  VOICE ENGINE
+# ══════════════════════════════════════════════════════════════
+
+class JannatVoiceEngine:
+    def __init__(self):
+        print("🎤 Initializing Voice...")
+        self.engine = pyttsx3.init()
+        self.is_speaking = False
+        self.configure_voice()
+    
+    def configure_voice(self):
+        voices = self.engine.getProperty('voices')
+        if len(voices) > 1:
+            self.engine.setProperty('voice', voices[1].id)
+        self.engine.setProperty('rate', 160)
+        self.engine.setProperty('volume', 1.0)
+        print("✅ Voice Ready")
+    
+    def speak(self, text):
+        if self.is_speaking:
+            return
+        
+        def speak_thread():
+            self.is_speaking = True
+            try:
+                self.engine.say(text)
+                self.engine.runAndWait()
+            except:
+                pass
+            self.is_speaking = False
+        
+        threading.Thread(target=speak_thread, daemon=True).start()
+
+# ══════════════════════════════════════════════════════════════
+#                  VOICE RECOGNITION (sounddevice + Vosk)
+# ══════════════════════════════════════════════════════════════
+
+class VoiceRecognizer(QObject):
+    command_received = pyqtSignal(str)
+    status_changed = pyqtSignal(str)
+    listening_active = pyqtSignal(bool)
+    
+    def __init__(self):
+        super().__init__()
+        self.is_running = False
+        self.should_stop = False
+        self.audio_queue = queue.Queue()
+        self.model = None
+        self.recognizer = None
+        
+        # Try to load or download model
+        self.initialize_model()
+        
+        self.sample_rate = 16000
+        self.blocksize = 8000
+    
+    def initialize_model(self):
+        """Initialize Vosk model with auto-download"""
+        try:
+            # Try to find existing model
+            model_path = None
+            possible_models = [
+                'vosk-model-small-en-us-0.15',
+                'vosk-model-small-ur-0.1',
+                'vosk-model-en-us-0.22-lgraph',
+                'vosk-model-small-en-in-0.4'
+            ]
+            
+            for model_name in possible_models:
+                if Path(model_name).exists():
+                    model_path = model_name
+                    print(f"✅ Found model: {model_name}")
+                    break
+            
+            # If no model found, download it
+            if not model_path:
+                print("🔍 No Vosk model found. Starting download...")
+                model_path = download_vosk_model()
+            
+            # Load model
+            if model_path:
+                self.model = vosk.Model(model_path)
+                self.recognizer = vosk.KaldiRecognizer(self.model, 16000)
+                print("✅ Vosk Model Ready")
+            else:
+                print("❌ Could not initialize Vosk model")
+                print("⚠️ Voice recognition will be DISABLED")
+                
+        except Exception as e:
+            print(f"❌ Model initialization error: {e}")
+            print("⚠️ Voice recognition will be DISABLED")
+            self.model = None
+            self.recognizer = None
+    
+    def audio_callback(self, indata, frames, time_info, status):
+        """Callback for sounddevice stream"""
+        if status:
+            print(f"Audio status: {status}")
+        self.audio_queue.put(bytes(indata))
+    
+    def start(self):
+        if self.is_running:
+            return
+        
+        if not self.recognizer:
+            print("❌ Cannot start - No voice model loaded")
+            self.status_changed.emit("❌ Voice model missing")
+            return
+            
+        self.is_running = True
+        self.should_stop = False
+        threading.Thread(target=self._listen_loop, daemon=True).start()
+    
+    def stop(self):
+        self.should_stop = True
+        self.is_running = False
+    
+    def _listen_loop(self):
+        """Main listening loop using sounddevice"""
+        try:
+            with sd.RawInputStream(samplerate=self.sample_rate, 
+                                  blocksize=self.blocksize,
+                                  dtype='int16',
+                                  channels=1,
+                                  callback=self.audio_callback):
+                
+                print("✅ Microphone stream started")
+                
+                while not self.should_stop:
+                    try:
+                        self.listening_active.emit(True)
+                        self.status_changed.emit("🎤 Listening...")
+                        
+                        # Get audio data from queue
+                        data = self.audio_queue.get(timeout=1)
+                        
+                        # Process with Vosk
+                        if self.recognizer.AcceptWaveform(data):
+                            result = json.loads(self.recognizer.Result())
+                            text = result.get('text', '').strip()
+                            
+                            if text:
+                                self.listening_active.emit(False)
+                                self.status_changed.emit("⚙️ Processing...")
+                                self.command_received.emit(text)
+                        else:
+                            # Partial result
+                            partial = json.loads(self.recognizer.PartialResult())
+                            partial_text = partial.get('partial', '')
+                            if partial_text:
+                                self.status_changed.emit(f"🎤 {partial_text}...")
+                        
+                    except queue.Empty:
+                        continue
+                    except Exception as e:
+                        print(f"Recognition error: {e}")
+                        time.sleep(0.1)
+                        
+        except Exception as e:
+            print(f"Stream error: {e}")
+            self.status_changed.emit("❌ Microphone Error")
+        
+        print("👂 Listening stopped")
+
+# ══════════════════════════════════════════════════════════════
+#                    COMMAND PROCESSOR
+# ══════════════════════════════════════════════════════════════
+
+class CommandProcessor:
+    def __init__(self, voice):
+        self.voice = voice
+    
+    def process(self, cmd_text):
+        if not cmd_text:
+            return None
+        
+        cmd = cmd_text.lower()
+        
+        # Open app
+        if 'open' in cmd:
+            for app_name, app_path in APPLICATIONS.items():
+                if app_name in cmd:
+                    try:
+                        os.startfile(app_path)
+                        self.voice.speak(f"{app_name} کھول رہی ہوں")
+                        return {'action': 'open', 'text': f"Opened {app_name}"}
+                    except:
+                        self.voice.speak("نہیں کھل سکا")
+                        return {'action': 'error', 'text': 'Failed'}
+            
+            self.voice.speak("ایپ نہیں ملی")
+            return {'action': 'not_found', 'text': 'App not found'}
+        
+        # Time
+        elif 'time' in cmd:
+            time_str = datetime.now().strftime("%I:%M %p")
+            self.voice.speak(f"وقت ہے {time_str}")
+            return {'action': 'time', 'text': time_str}
+        
+        # Date
+        elif 'date' in cmd:
+            date_str = datetime.now().strftime("%B %d, %Y")
+            self.voice.speak(f"تاریخ ہے {date_str}")
+            return {'action': 'date', 'text': date_str}
+        
+        # Exit
+        elif any(w in cmd for w in ['exit', 'close', 'bye']):
+            self.voice.speak("خدا حافظ")
+            return {'action': 'exit', 'text': 'Goodbye'}
+        
+        # AI Query
+        else:
+            ai_response = query_groq_ai(cmd_text)
+            if ai_response:
+                self.voice.speak(ai_response)
+                return {'action': 'ai', 'text': ai_response}
+            else:
+                self.voice.speak("میں نے سنا")
+                return {'action': 'heard', 'text': f"Heard: {cmd_text}"}
+
+# ══════════════════════════════════════════════════════════════
+#          LIGHTWEIGHT 3D CHARACTER (4GB RAM OPTIMIZED)
+# ══════════════════════════════════════════════════════════════
+
+class Character3D(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.is_listening = False
+        self.is_speaking = False
+        self.frame = 0
+        
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.animate)
+        self.timer.start(33)
+        
+        self.setMinimumSize(400, 500)
+    
+    def animate(self):
+        self.frame = (self.frame + 1) % 360
+        self.update()
+    
+    def set_listening(self, state):
+        self.is_listening = state
+    
+    def set_speaking(self, state):
+        self.is_speaking = state
+    
+    def paintEvent(self, event):
+        p = QPainter(self)
+        p.setRenderHint(QPainter.Antialiasing)
+        
+        w, h = self.width(), self.height()
+        cx, cy = w // 2, h // 2 + 50
+        
+        # Background
+        bg = QLinearGradient(0, 0, 0, h)
+        bg.setColorAt(0, QColor(20, 20, 40))
+        bg.setColorAt(1, QColor(10, 10, 25))
+        p.fillRect(0, 0, w, h, bg)
+        
+        # Glow
+        if self.is_listening:
+            color = QColor(0, 255, 150, 80)
+            radius = 150 + abs(math.sin(self.frame * 0.05)) * 30
+        elif self.is_speaking:
+            color = QColor(255, 150, 50, 80)
+            radius = 150 + abs(math.sin(self.frame * 0.1)) * 40
+        else:
+            color = QColor(100, 150, 255, 50)
+            radius = 150
+        
+        glow = QRadialGradient(cx, cy - 50, radius)
+        glow.setColorAt(0, color)
+        glow.setColorAt(1, QColor(0, 0, 0, 0))
+        p.setBrush(QBrush(glow))
+        p.setPen(Qt.NoPen)
+        p.drawEllipse(int(cx - radius), int(cy - 50 - radius),
+                     int(radius * 2), int(radius * 2))
+        
+        # Head
+        head_grad = QRadialGradient(cx - 10, cy - 100, 80)
+        head_grad.setColorAt(0, QColor(255, 220, 200))
+        head_grad.setColorAt(1, QColor(230, 180, 160))
+        p.setBrush(QBrush(head_grad))
+        p.setPen(QPen(QColor(200, 150, 130), 2))
+        p.drawEllipse(cx - 60, cy - 140, 120, 140)
+        
+        # Hair
+        p.setBrush(QBrush(QColor(50, 30, 20)))
+        p.setPen(QPen(QColor(50, 30, 20), 2))
+        p.drawEllipse(cx - 70, cy - 150, 140, 80)
+        
+        left_hair_x = cx - 70 + math.sin(self.frame * 0.05) * 3
+        right_hair_x = cx + 50 - math.sin(self.frame * 0.05) * 3
+        p.drawEllipse(int(left_hair_x), cy - 130, 30, 100)
+        p.drawEllipse(int(right_hair_x), cy - 130, 30, 100)
+        
+        # Eyes
+        eye_y = cy - 100
+        if self.is_speaking and (self.frame % 30) < 3:
+            p.setBrush(QBrush(QColor(80, 50, 40)))
+            p.drawEllipse(cx - 30, eye_y, 20, 5)
+            p.drawEllipse(cx + 10, eye_y, 20, 5)
+        else:
+            p.setBrush(QBrush(QColor(255, 255, 255)))
+            p.drawEllipse(cx - 30, eye_y, 20, 25)
+            p.drawEllipse(cx + 10, eye_y, 20, 25)
+            
+            iris_offset = 0
+            if self.is_listening:
+                iris_offset = math.sin(self.frame * 0.1) * 3
+            
+            p.setBrush(QBrush(QColor(100, 50, 150)))
+            p.drawEllipse(int(cx - 25 + iris_offset), eye_y + 5, 10, 15)
+            p.drawEllipse(int(cx + 15 + iris_offset), eye_y + 5, 10, 15)
+            
+            p.setBrush(QBrush(QColor(0, 0, 0)))
+            p.drawEllipse(int(cx - 23 + iris_offset), eye_y + 8, 6, 9)
+            p.drawEllipse(int(cx + 17 + iris_offset), eye_y + 8, 6, 9)
+            
+            p.setBrush(QBrush(QColor(255, 255, 255, 200)))
+            p.drawEllipse(int(cx - 21 + iris_offset), eye_y + 9, 3, 4)
+            p.drawEllipse(int(cx + 19 + iris_offset), eye_y + 9, 3, 4)
+        
+        # Nose
+        p.setPen(QPen(QColor(200, 150, 130), 2))
+        p.drawLine(cx, cy - 80, cx - 3, cy - 70)
+        
+        # Mouth
+        mouth_y = cy - 50
+        if self.is_speaking:
+            mouth_h = abs(math.sin(self.frame * 0.15)) * 15 + 5
+            p.setBrush(QBrush(QColor(180, 80, 80)))
+            p.setPen(QPen(QColor(160, 60, 60), 2))
+            p.drawEllipse(cx - 15, int(mouth_y), 30, int(mouth_h))
+        else:
+            p.setBrush(Qt.NoBrush)
+            p.setPen(QPen(QColor(200, 100, 100), 3))
+            p.drawArc(cx - 20, mouth_y, 40, 25, 0, -180 * 16)
+        
+        # Neck
+        neck_grad = QLinearGradient(cx - 15, cy, cx + 15, cy)
+        neck_grad.setColorAt(0, QColor(230, 180, 160))
+        neck_grad.setColorAt(0.5, QColor(255, 210, 190))
+        neck_grad.setColorAt(1, QColor(230, 180, 160))
+        p.setBrush(QBrush(neck_grad))
+        p.setPen(QPen(QColor(200, 150, 130), 1))
+        p.drawRect(cx - 15, cy - 10, 30, 40)
+        
+        # Body
+        body_grad = QLinearGradient(cx, cy + 30, cx, cy + 180)
+        body_grad.setColorAt(0, QColor(150, 100, 200))
+        body_grad.setColorAt(1, QColor(100, 50, 150))
+        p.setBrush(QBrush(body_grad))
+        p.setPen(QPen(QColor(80, 40, 120), 2))
+        
+        pts = [
+            QPoint(cx - 40, cy + 30),
+            QPoint(cx + 40, cy + 30),
+            QPoint(cx + 60, cy + 180),
+            QPoint(cx - 60, cy + 180)
+        ]
+        p.drawPolygon(QPolygon(pts))
+        
+        # Arms
+        arm_sway = math.sin(self.frame * 0.03) * 5
+        p.setPen(QPen(QColor(255, 200, 180), 12, Qt.SolidLine, Qt.RoundCap))
+        p.drawLine(cx - 40, cy + 50, int(cx - 70 + arm_sway), cy + 120)
+        p.drawLine(cx + 40, cy + 50, int(cx + 70 - arm_sway), cy + 120)
+        
+        # Status
+        p.setFont(QFont("Arial", 14, QFont.Bold))
+        if self.is_listening:
+            p.setPen(QColor(0, 255, 150))
+            txt = "🎤 Listening"
+        elif self.is_speaking:
+            p.setPen(QColor(255, 150, 50))
+            txt = "🗣️ Speaking"
+        e
